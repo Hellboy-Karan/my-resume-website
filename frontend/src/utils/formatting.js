@@ -75,6 +75,13 @@ export function richTextToPlain(value = '') {
   return (container.textContent || container.innerText || '').replace(/\s+/g, ' ').trim();
 }
 
+export function publicResumeUrl(slugOrUsername = '') {
+  const slug = String(slugOrUsername || '').replace(/^\/+/, '');
+  const path = `/resume/${slug}`;
+  if (typeof window === 'undefined' || !window.location?.origin) return path;
+  return `${window.location.origin}${path}`;
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replace(/&/g, '&amp;')

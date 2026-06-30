@@ -153,7 +153,6 @@ export default function AdminResumeUsersPanel({ currentUser }) {
 
       <form className="mt-5 grid gap-3 lg:grid-cols-[1fr_180px_180px_auto]" onSubmit={submitSearch}>
         <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input className="input h-12 pl-12 pr-4" placeholder="Search name, email, or username" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} />
         </label>
         <select className="input" value={filters.role} onChange={(event) => setFilters({ ...filters, role: event.target.value })}>

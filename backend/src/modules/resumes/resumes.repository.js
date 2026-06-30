@@ -186,6 +186,23 @@ export class ResumeRepository {
     return this.findSectionById(id);
   }
 
+  async reorderSections(resumeId, sectionIds) {
+    if (!sectionIds.length) return this.sections(resumeId);
+    const cases = sectionIds.map((_, index) => `WHEN :id${index} THEN :order${index}`).join(' ');
+    const params = sectionIds.reduce((result, id, index) => ({
+      ...result,
+      [`id${index}`]: id,
+      [`order${index}`]: index + 1
+    }), { resumeId });
+    await query(
+      `UPDATE resume_sections
+       SET sort_order = CASE id ${cases} ELSE sort_order END
+       WHERE resume_id = :resumeId AND id IN (${sectionIds.map((_, index) => `:id${index}`).join(',')})`,
+      params
+    );
+    return this.sections(resumeId);
+  }
+
   async deleteSection(id) {
     await query('DELETE FROM resume_sections WHERE id = :id', { id });
   }

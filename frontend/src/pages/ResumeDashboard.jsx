@@ -157,7 +157,6 @@ export default function ResumeDashboard() {
         </div>
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input className="input h-12 pl-12 pr-4" placeholder="Search by owner, description, or template" value={search} onChange={(event) => setSearch(event.target.value)} />
           </label>
           <select className="input h-12" value={filter} onChange={(event) => setFilter(event.target.value)}>
