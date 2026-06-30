@@ -21,13 +21,15 @@ export default function PublicResumePage() {
   const canEdit = user && data.resume?.id && data.resume.id !== 0 && (user.role === 'ADMIN' || data.resume.user_id === user.id);
 
   return (
-    <>
+    <main className="resume-detail-page mx-auto w-full max-w-[1760px] px-4 py-6 sm:px-6 lg:px-8">
       {canEdit && (
-        <div className="mx-auto flex max-w-7xl justify-end px-4 pt-5 print:hidden">
+        <div className="mb-4 flex justify-end print:hidden">
           <Link className="btn-primary" to={`/editor?resumeId=${data.resume.id}`}><Pencil size={16} /> Edit</Link>
         </div>
       )}
-      <ResumeView data={data} template={data.resume.template_slug} />
-    </>
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-soft">
+        <ResumeView data={data} template={data.resume.template_slug} />
+      </div>
+    </main>
   );
 }

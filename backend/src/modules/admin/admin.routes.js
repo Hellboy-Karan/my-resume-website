@@ -97,6 +97,9 @@ router.get('/resume-users', async (req, res, next) => {
         u.role,
         u.created_at,
         MAX(r.updated_at) AS last_activity,
+        SUBSTRING_INDEX(GROUP_CONCAT(r.id ORDER BY r.updated_at DESC), ',', 1) AS latest_resume_id,
+        SUBSTRING_INDEX(GROUP_CONCAT(r.slug ORDER BY r.updated_at DESC), ',', 1) AS latest_resume_slug,
+        SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(r.profile_image_url, '') ORDER BY r.updated_at DESC SEPARATOR '||'), '||', 1) AS profile_image_url,
         COUNT(r.id) AS total_resumes,
         SUM(CASE WHEN r.is_public = TRUE THEN 1 ELSE 0 END) AS published_resumes,
         SUM(CASE WHEN r.is_public = FALSE THEN 1 ELSE 0 END) AS draft_resumes
@@ -138,7 +141,7 @@ router.get('/users/:id/resumes', [param('id').isInt()], validate, async (req, re
   try {
     const target = await users.findById(req.params.id);
     if (!target) throw new HttpError(404, 'User not found');
-    if (req.user.role === 'SUB_ADMIN' && target.role === 'ADMIN') throw new HttpError(403, 'Sub Admin cannot manage Admin resumes');
+    if (req.user.role === 'SUB_ADMIN' && target.role !== 'USER') throw new HttpError(403, 'Sub Admin can only manage normal user resumes');
     res.json({ user: target, resumes: await resumes.findByUser(req.params.id) });
   } catch (error) {
     next(error);
@@ -150,7 +153,7 @@ router.patch('/resumes/:id/visibility', [param('id').isInt(), body('isPublic').i
     const resume = await resumes.findById(req.params.id);
     if (!resume) throw new HttpError(404, 'Resume not found');
     const owner = await users.findById(resume.user_id);
-    if (req.user.role === 'SUB_ADMIN' && owner?.role === 'ADMIN') throw new HttpError(403, 'Sub Admin cannot change Admin resumes');
+    if (req.user.role === 'SUB_ADMIN' && owner?.role !== 'USER') throw new HttpError(403, 'Sub Admin can only change normal user resumes');
     res.json({ resume: await resumes.update(req.params.id, { isPublic: req.body.isPublic }) });
   } catch (error) {
     next(error);
@@ -163,7 +166,7 @@ router.delete('/resumes/:id', [param('id').isInt()], validate, async (req, res, 
     if (!resume) throw new HttpError(404, 'Resume not found');
     const owner = await users.findById(resume.user_id);
     if (req.user.role === 'SUB_ADMIN') {
-      if (owner?.role === 'ADMIN') throw new HttpError(403, 'Sub Admin cannot delete Admin resumes');
+      if (owner?.role !== 'USER') throw new HttpError(403, 'Sub Admin can only delete normal user resumes');
     }
     await resumes.delete(req.params.id);
     res.status(204).end();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Eye, RefreshCw, Search, Shield, Trash2 } from 'lucide-react';
+import { Eye, Pencil, RefreshCw, Search, Shield, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Skeleton from './Skeleton.jsx';
@@ -88,6 +88,11 @@ export default function AdminResumeUsersPanel({ currentUser }) {
     return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER';
   }
 
+  function canEditUserResume(ownerRole) {
+    if (currentUser.role === 'ADMIN') return true;
+    return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER';
+  }
+
   return (
     <section className="mt-10 rounded-md border border-slate-200 bg-white p-5 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -150,8 +155,15 @@ export default function AdminResumeUsersPanel({ currentUser }) {
               {rows.map((row) => (
                 <tr key={row.id} className="align-top">
                   <td className="px-3 py-3">
-                    <strong className="block text-ink">{row.name}</strong>
-                    <span className="text-slate-500">{row.email}</span>
+                    <div className="flex items-center gap-3">
+                      {row.profile_image_url && (
+                        <img className="h-11 w-11 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={row.profile_image_url} alt={`${row.name} profile`} />
+                      )}
+                      <div>
+                        <strong className="block text-ink">{row.name}</strong>
+                        <span className="text-slate-500">{row.email}</span>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-3 py-3"><RoleBadge role={row.role} /></td>
                   <td className="px-3 py-3 font-bold">{row.total_resumes}</td>
@@ -160,9 +172,16 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                   <td className="px-3 py-3">{formatDate(row.created_at)}</td>
                   <td className="px-3 py-3">{formatDate(row.last_activity)}</td>
                   <td className="px-3 py-3">
+                    <div className="flex flex-wrap gap-2">
                     <button className="btn-secondary px-3" onClick={() => loadUserResumes(row)} disabled={busy === `view-${row.id}`}>
                       <Eye size={16} /> View
                     </button>
+                    {canEditUserResume(row.role) && row.latest_resume_id && (
+                      <Link className="btn-primary px-3" to={`/editor?resumeId=${row.latest_resume_id}`}>
+                        <Pencil size={16} /> Edit
+                      </Link>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -206,7 +225,10 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                     </span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Link className="btn-secondary" to={`/resume/${selected.username}`}><Eye size={16} /> View Public</Link>
+                    <Link className="btn-secondary" to={`/resume/${resume.slug || selected.username}`}><Eye size={16} /> View Public</Link>
+                    {canEditUserResume(selected.role) && (
+                      <Link className="btn-primary" to={`/editor?resumeId=${resume.id}`}><Pencil size={16} /> Edit</Link>
+                    )}
                     <button className="btn-secondary" onClick={() => toggleVisibility(resume)} disabled={busy === `publish-${resume.id}`}>
                       {resume.is_public ? 'Unpublish' : 'Publish'}
                     </button>

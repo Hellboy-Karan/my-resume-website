@@ -174,9 +174,9 @@ export default function ResumeEditorPage() {
 
   return (
     <>
-      <div className="resume-editor-workspace mx-auto grid max-w-[1800px] items-start gap-6 px-4 py-6 xl:grid-cols-[430px_minmax(0,1fr)]">
-        <aside className="editor-controls print:hidden xl:sticky xl:top-24">
-          <div className="grid gap-5">
+      <div className="resume-editor-workspace mx-auto grid max-w-[1900px] items-start gap-6 px-4 py-6 xl:grid-cols-[430px_minmax(0,1fr)]">
+        <aside className="editor-controls print:hidden xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:pr-2">
+          <div className="grid gap-5 pb-4">
             <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
               <label className="text-xs font-black uppercase text-slate-500">Resume Title</label>
               <input className="input mt-2 text-lg font-black" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} />
@@ -213,7 +213,7 @@ export default function ResumeEditorPage() {
           </div>
         </aside>
 
-        <main className="resume-preview-shell min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white shadow-soft">
+        <main className="resume-preview-shell min-w-0 rounded-md border border-slate-200 bg-white shadow-soft">
           <ResumeView
             data={data}
             editable

@@ -1,5 +1,11 @@
 export const templates = [
   {
+    slug: 'standard-template',
+    name: 'Standard Template',
+    description: 'ATS-safe classic resume matching the uploaded format: centered header, serif typography, section rules, and compact bullet content.',
+    image: templateImage('#111111', '#2563eb', '#ffffff', 'standard')
+  },
+  {
     slug: 'modern-developer',
     name: 'Modern Developer',
     description: 'Strong technical identity, project cards, and clean section rhythm.',
@@ -79,6 +85,7 @@ export function templateName(slug) {
 
 function templateImage(primary, accent, paper, variant) {
   const middle = {
+    standard: `<text x="480" y="92" text-anchor="middle" font-family="Georgia, serif" font-size="34" font-weight="700" fill="${primary}">Karan Kumar Sharma</text><rect x="180" y="142" width="600" height="1.5" fill="#71717a"/><rect x="72" y="196" width="816" height="1.5" fill="#71717a"/><rect x="72" y="286" width="816" height="1.5" fill="#71717a"/><rect x="72" y="376" width="816" height="1.5" fill="#71717a"/><text x="72" y="180" font-family="Georgia, serif" font-size="22" fill="${primary}">PROFESSIONAL SUMMARY</text><text x="72" y="270" font-family="Georgia, serif" font-size="22" fill="${primary}">TECHNICAL SKILLS</text><text x="72" y="360" font-family="Georgia, serif" font-size="22" fill="${primary}">PROFESSIONAL EXPERIENCE</text>`,
     cards: `<rect x="352" y="170" width="250" height="110" rx="10" fill="white" stroke="#cbd5e1"/><rect x="632" y="170" width="280" height="110" rx="10" fill="white" stroke="#cbd5e1"/><rect x="352" y="310" width="560" height="140" rx="10" fill="white" stroke="#cbd5e1"/>`,
     classic: `<rect x="90" y="170" width="780" height="1" fill="#cbd5e1"/><rect x="90" y="210" width="780" height="1" fill="#cbd5e1"/><rect x="90" y="250" width="780" height="1" fill="#cbd5e1"/><rect x="90" y="290" width="780" height="1" fill="#cbd5e1"/>`,
     bands: `<rect x="48" y="158" width="864" height="70" rx="10" fill="white" stroke="#cbd5e1"/><rect x="48" y="252" width="864" height="70" rx="10" fill="white" stroke="#cbd5e1"/><rect x="48" y="346" width="864" height="70" rx="10" fill="white" stroke="#cbd5e1"/>`,

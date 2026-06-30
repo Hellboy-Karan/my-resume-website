@@ -173,6 +173,9 @@ export default function ResumeDashboard() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   {canManage(resume) && <input className="mt-1" type="checkbox" checked={selectedIds.includes(Number(resume.id))} onChange={() => toggleResume(resume.id)} />}
+                  {resume.profile_image_url && (
+                    <img className="h-16 w-16 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={resume.profile_image_url} alt={`${resume.owner?.name || resume.title || 'Resume'} profile`} />
+                  )}
                   <div>
                   <h2 className="text-xl font-black text-ink">{resume.title || 'Untitled Resume'}</h2>
                   <p className="mt-1 text-sm font-semibold text-slate-600">Template: {templateName(resume.template_slug)}</p>

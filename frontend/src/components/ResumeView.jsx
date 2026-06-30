@@ -82,6 +82,7 @@ function profileImageClass(template) {
 
 function accentLabel(template) {
   const labels = {
+    'standard-template': 'Standard Template',
     'product-company': 'Product Impact Resume',
     'senior-product-engineer': 'Senior Product Engineering',
     'management-executive': 'Management Leadership',
@@ -89,6 +90,96 @@ function accentLabel(template) {
     'consulting-leadership': 'Consulting Leadership'
   };
   return labels[template];
+}
+
+function renderStandardContent(section) {
+  const content = section.content || {};
+  if (section.type === 'skills' && Array.isArray(content.items)) {
+    return <p className="text-[15px] leading-7 text-black">{content.items.join(', ')}</p>;
+  }
+  if (['social-links', 'links'].includes(section.type) && Array.isArray(content.items)) {
+    return (
+      <p className="text-[15px] leading-7 text-black">
+        {content.items.slice(0, 5).map((item) => (typeof item === 'string' ? item : `${item.label || 'Link'}: ${item.url}`)).join(' | ')}
+      </p>
+    );
+  }
+  if (Array.isArray(content.items)) {
+    return (
+      <ul className="ml-8 list-disc space-y-2 text-[15px] leading-7 text-black">
+        {content.items.map((item, index) => (
+          <li key={index}>{typeof item === 'string' ? item : item.description || item.name || JSON.stringify(item)}</li>
+        ))}
+      </ul>
+    );
+  }
+  const entries = Object.entries(content).filter(([, value]) => {
+    if (Array.isArray(value)) return value.length;
+    return String(value || '').trim();
+  });
+  if (entries.length > 1) {
+    return (
+      <div className="space-y-1 text-[15px] leading-7 text-black">
+        {entries.map(([key, value]) => (
+          <p key={key}>
+            <strong>{toTitle(key)}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return <p className="text-justify text-[15px] leading-8 text-black">{content.text || content.body || JSON.stringify(content)}</p>;
+}
+
+function toTitle(value) {
+  return String(value).replace(/([A-Z])/g, ' $1').replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+}
+
+function StandardResumeView({ owner, resume, sections, editable, selected, onSelect, onEdit, onDelete }) {
+  const socialLinks = sections.find((section) => ['social-links', 'links'].includes(section.type))?.content?.items || owner.links || [];
+  const linkLabels = socialLinks.slice(0, 2).map((link) => (typeof link === 'string' ? 'Link' : link.label)).filter(Boolean);
+
+  return (
+    <div className="resume-print-area bg-white font-serif text-black">
+      <ResumeSectionNav sections={sections} />
+      <div className="mx-auto max-w-[980px] bg-white px-10 py-10">
+        <div className="print:hidden mb-4 flex justify-end">
+          <button className="btn-secondary font-sans" onClick={() => window.print()}>
+            <Download size={16} /> Print as PDF
+          </button>
+        </div>
+        <header className="text-center">
+          <h1 className="text-[30px] font-bold leading-tight text-black">{owner.name}</h1>
+          <p className="mt-4 text-[16px] leading-7 text-black">
+            {[owner.phone, owner.email ? `Email: ${owner.email}` : '', ...linkLabels].filter(Boolean).map((item, index) => (
+              <span key={`${item}-${index}`}>{index > 0 ? ' || ' : ''}{item}</span>
+            ))}
+          </p>
+          <p className="mx-auto mt-2 max-w-4xl text-[16px] leading-7 text-black">{owner.title || resume.title}</p>
+        </header>
+
+        <div className="mt-10 space-y-10">
+          {sections.map((section) => (
+            <section id={section.navId} className="scroll-mt-24" key={section.id}>
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-500 pb-4">
+                <div className="flex items-center gap-3">
+                  {editable && <input className="print:hidden" type="checkbox" checked={selected.includes(section.id)} onChange={() => onSelect?.(section.id)} />}
+                  <h2 className="text-[24px] font-normal uppercase leading-none tracking-normal text-black">{section.title}</h2>
+                </div>
+                {editable && (
+                  <div className="print:hidden flex gap-2 font-sans">
+                    <button className="btn-secondary px-3" onClick={() => onEdit?.(section)} aria-label="Edit section"><Edit3 size={16} /></button>
+                    <button className="btn-secondary px-3" onClick={() => onDelete?.(section)} aria-label="Delete section"><Trash2 size={16} /></button>
+                  </div>
+                )}
+              </div>
+              {renderStandardContent(section)}
+            </section>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ResumeView({ data, editable = false, selected = [], onSelect, onEdit, onDelete, template = 'modern-developer' }) {
@@ -103,11 +194,15 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
   const headerText = darkHeader ? 'text-white' : 'text-ink';
   const mutedText = darkHeader ? 'text-white/75' : 'text-slate-600';
 
+  if (template === 'standard-template') {
+    return <StandardResumeView owner={owner} resume={resume} sections={sections} editable={editable} selected={selected} onSelect={onSelect} onEdit={onEdit} onDelete={onDelete} />;
+  }
+
   return (
-    <div className={`resume-print-area ${sidebar ? 'grid gap-6 lg:grid-cols-[320px_1fr]' : ''}`}>
+    <div className={`resume-print-area ${sidebar ? 'grid gap-0 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]' : ''}`}>
       <ResumeSectionNav sections={sections} />
-      <section className={`border-b border-slate-200 ${headerStyle(template)}`}>
-        <div className="mx-auto max-w-7xl px-4 py-10">
+      <section className={`border-b border-slate-200 ${sidebar ? 'min-h-full' : ''} ${headerStyle(template)}`}>
+        <div className={`mx-auto max-w-7xl ${sidebar ? 'px-6 py-8 lg:px-8' : 'px-4 py-10 sm:px-6 lg:px-8'}`}>
           <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
             <p className="text-sm font-bold uppercase text-coral">{accentLabel(template) || resume.template_slug || template}</p>
             <button className="btn-secondary" onClick={() => window.print()}>
@@ -123,8 +218,8 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
           <p className={`mt-4 max-w-3xl text-lg font-semibold leading-8 ${mutedText}`}>{owner.title || resume.title}</p>
           <div className={`mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold ${mutedText}`}>
             <span className={headerText}>Owner: {owner.name || 'Resume owner'}</span>
-            <RoleBadge role={owner.role || resume.owner?.role || 'USER'} />
-            <span>{owner.email}</span>
+            <span className="print:hidden"><RoleBadge role={owner.role || resume.owner?.role || 'USER'} /></span>
+            {owner.email && <span>Email: {owner.email}</span>}
             <span>{owner.location}</span>
             <span>Profile URL: /resume/{owner.username}</span>
           </div>
@@ -140,7 +235,7 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-8">
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-5">
           {sections.map((section) => (
             <article id={section.navId} key={section.id} className="scroll-mt-24 rounded-md border border-slate-200 bg-white p-5 shadow-soft">
