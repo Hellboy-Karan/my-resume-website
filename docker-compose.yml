@@ -52,7 +52,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./backend/uploads:/app/uploads
+      - upload-data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -78,4 +78,4 @@ volumes:
   mysql-data:
   mongo-data:
   redis-data:
-
+  upload-data:

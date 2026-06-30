@@ -44,9 +44,23 @@ export async function ensureMysqlSchema() {
     for (const statement of schemaSql.split(';').map((s) => s.trim()).filter(Boolean)) {
       await connection.query(statement);
     }
-    await connection.query('ALTER TABLE resumes ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR(500) NULL');
-    await connection.query('ALTER TABLE templates ADD COLUMN IF NOT EXISTS image_url VARCHAR(500) NULL');
+    await addColumnIfMissing(connection, 'resumes', 'profile_image_url', 'VARCHAR(500) NULL');
+    await addColumnIfMissing(connection, 'templates', 'image_url', 'VARCHAR(500) NULL');
   } finally {
     connection.release();
+  }
+}
+
+async function addColumnIfMissing(connection, tableName, columnName, definition) {
+  const [rows] = await connection.query(
+    `SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [env.mysql.database, tableName, columnName]
+  );
+
+  if (!rows.length) {
+    await connection.query(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${definition}`);
   }
 }

@@ -9,10 +9,21 @@ export class ResumeService {
 
   async ensureOwnerOrAdmin(user, resumeId) {
     const resume = assertFound(await this.repository.findById(resumeId), 'Resume not found');
-    if (resume.user_id !== user.id && user.role !== 'ADMIN') {
-      throw new HttpError(403, 'You can only access your own resume');
+    return this.ensureCanManageResume(user, resume, 'update');
+  }
+
+  ensureCanManageResume(user, resume, action = 'view') {
+    const ownerRole = resume.owner?.role;
+    const isOwner = resume.user_id === user.id;
+    if (user.role === 'ADMIN') return resume;
+    if (user.role === 'SUB_ADMIN') {
+      if (ownerRole === 'ADMIN' && !isOwner) {
+        throw new HttpError(403, 'Sub Admin cannot manage Admin resumes');
+      }
+      return resume;
     }
-    return resume;
+    if (isOwner) return resume;
+    throw new HttpError(403, `You cannot ${action} this resume`);
   }
 
   async create(user, payload) {
@@ -26,6 +37,9 @@ export class ResumeService {
   }
 
   async listMine(user) {
+    if (user.role === 'ADMIN' || user.role === 'SUB_ADMIN') {
+      return this.repository.findAll();
+    }
     return this.repository.findByUser(user.id);
   }
 
@@ -41,11 +55,36 @@ export class ResumeService {
   }
 
   async delete(user, id) {
-    const resume = await this.ensureOwnerOrAdmin(user, Number(id));
-    if (user.role === 'SUB_ADMIN' && resume.user_id !== user.id) {
-      throw new HttpError(403, 'Sub Admin cannot delete user resumes');
+    const resume = assertFound(await this.repository.findById(Number(id)), 'Resume not found');
+    this.ensureCanManageResume(user, resume, 'delete');
+    if (user.role === 'SUB_ADMIN' && resume.owner?.role === 'ADMIN') {
+      throw new HttpError(403, 'Sub Admin cannot delete Admin resumes');
     }
     await this.repository.delete(Number(id));
+  }
+
+  async bulkDelete(user, ids) {
+    const allowedIds = [];
+    const blocked = [];
+    for (const id of ids.map(Number)) {
+      const resume = await this.repository.findById(id);
+      if (!resume) {
+        blocked.push({ id, reason: 'Resume not found' });
+        continue;
+      }
+      try {
+        this.ensureCanManageResume(user, resume, 'delete');
+        if (user.role === 'SUB_ADMIN' && resume.owner?.role === 'ADMIN') {
+          throw new HttpError(403, 'Sub Admin cannot delete Admin resumes');
+        }
+        allowedIds.push(id);
+      } catch (error) {
+        blocked.push({ id, reason: error.message });
+      }
+    }
+    if (!allowedIds.length) throw new HttpError(403, 'No selected resumes can be deleted', blocked);
+    await this.repository.bulkDelete(allowedIds);
+    return { deletedIds: allowedIds, blocked };
   }
 
   async addSection(user, resumeId, payload) {

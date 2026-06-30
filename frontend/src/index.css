@@ -26,6 +26,24 @@ body {
 }
 
 .input {
-  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-slate-200;
+  @apply h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-slate-200;
 }
 
+@media print {
+  header,
+  .print\:hidden,
+  aside,
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .shadow-soft {
+    box-shadow: none !important;
+  }
+}

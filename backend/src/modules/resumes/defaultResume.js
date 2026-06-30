@@ -3,6 +3,7 @@ export const defaultResume = {
     name: 'Karan Kumar Sharma',
     username: 'karan-kumar-sharma',
     email: 'sk5485633@gmail.com',
+    role: 'ADMIN',
     title: 'MERN Stack Engineer | Node.js Backend Engineer | 4.8+ Years Experience',
     location: 'India',
     links: [
@@ -79,4 +80,3 @@ export const defaultResume = {
     }
   ]
 };
-

@@ -46,6 +46,20 @@ router.post(
 );
 
 router.post(
+  '/bulk-delete',
+  featureGate('canDeleteResume'),
+  [body('resumeIds').isArray({ min: 1 })],
+  validate,
+  async (req, res, next) => {
+    try {
+      res.json(await service.bulkDelete(req.user, req.body.resumeIds));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
   '/:id/import',
   featureGate('canEditResume'),
   [param('id').isInt()],
