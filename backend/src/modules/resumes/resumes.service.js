@@ -1,5 +1,6 @@
 import { HttpError, assertFound } from '../../common/httpError.js';
 import { slugify } from '../../utils/slug.js';
+import { resolvePermissions } from '../../middlewares/featureGate.js';
 import { ResumeRepository } from './resumes.repository.js';
 
 export class ResumeService {
@@ -15,18 +16,26 @@ export class ResumeService {
   ensureCanManageResume(user, resume, action = 'view') {
     const ownerRole = resume.owner?.role;
     const isOwner = resume.user_id === user.id;
+    const permissions = resolvePermissions(user);
     if (user.role === 'ADMIN') return resume;
     if (user.role === 'SUB_ADMIN') {
+      if (action === 'view' && (isOwner || resume.is_public || permissions.canViewAllResumes)) return resume;
+      if (isOwner && action === 'update' && permissions.canEditOwnResume) return resume;
+      if (isOwner && action === 'delete' && permissions.canDeleteOwnResume) return resume;
+      if (!permissions.canModerateResumes) throw new HttpError(403, 'Sub Admin is not allowed to moderate resumes');
       if (ownerRole === 'ADMIN' && !isOwner) {
         throw new HttpError(403, 'Sub Admin cannot manage Admin resumes');
       }
       return resume;
     }
-    if (isOwner) return resume;
+    if (action === 'view' && (isOwner || resume.is_public)) return resume;
+    if (action === 'update' && isOwner && permissions.canEditOwnResume) return resume;
+    if (action === 'delete' && isOwner && permissions.canDeleteOwnResume) return resume;
     throw new HttpError(403, `You cannot ${action} this resume`);
   }
 
   async create(user, payload) {
+    if (!resolvePermissions(user).canCreateResume) throw new HttpError(403, 'You are not allowed to create resumes');
     const slug = `${user.username}-${Date.now().toString(36)}`;
     return this.repository.create({
       userId: user.id,
@@ -38,9 +47,13 @@ export class ResumeService {
 
   async listMine(user) {
     if (user.role === 'ADMIN' || user.role === 'SUB_ADMIN') {
+      if (!resolvePermissions(user).canViewAllResumes && user.role !== 'ADMIN') return this.repository.findByUser(user.id);
       return this.repository.findAll();
     }
-    return this.repository.findByUser(user.id);
+    const mine = await this.repository.findByUser(user.id);
+    const published = await this.repository.findPublished();
+    const byId = new Map([...mine, ...published].map((resume) => [Number(resume.id), resume]));
+    return [...byId.values()];
   }
 
   async get(user, id) {
@@ -50,7 +63,13 @@ export class ResumeService {
   }
 
   async update(user, id, payload) {
-    await this.ensureOwnerOrAdmin(user, Number(id));
+    const resume = await this.ensureOwnerOrAdmin(user, Number(id));
+    if (Object.prototype.hasOwnProperty.call(payload, 'isPublic') && !resolvePermissions(user).canPublishResume && user.role !== 'ADMIN') {
+      throw new HttpError(403, 'You are not allowed to publish resumes');
+    }
+    if (payload.templateSlug && !resolvePermissions(user).canChangeTemplate && user.role !== 'ADMIN') {
+      throw new HttpError(403, 'You are not allowed to change templates');
+    }
     return this.repository.update(Number(id), payload);
   }
 

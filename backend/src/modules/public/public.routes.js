@@ -70,7 +70,11 @@ router.get('/dashboard', async (_req, res, next) => {
        LIMIT 1`
     );
     const adminShowcaseRows = await query(
-      `SELECT r.id, r.title, r.slug, r.template_slug, r.profile_image_url, r.updated_at, u.name AS owner_name, u.email AS owner_email, u.username AS owner_username
+      `SELECT r.id, r.title, r.slug, r.template_slug, r.profile_image_url, r.updated_at,
+        u.name AS owner_name, u.email AS owner_email, u.username AS owner_username,
+        u.profile_image_url AS owner_profile_image_url, u.phone AS owner_phone,
+        u.short_description AS owner_short_description, u.profile_title AS owner_profile_title,
+        u.social_links AS owner_social_links
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.is_public = TRUE AND u.role = 'ADMIN'
@@ -78,11 +82,13 @@ router.get('/dashboard', async (_req, res, next) => {
     );
     const adminShowcase = await Promise.all(adminShowcaseRows.map(async (resume) => {
       const sections = await resumes.sections(resume.id);
+      const ownerLinks = parseContent(resume.owner_social_links);
       return {
         ...resume,
-        phone: phoneFromSections(sections),
-        social_links: linksFromSections(sections),
-        summary: summaryFromSections(sections)
+        profile_image_url: resume.profile_image_url || resume.owner_profile_image_url,
+        phone: resume.owner_phone || phoneFromSections(sections),
+        social_links: Array.isArray(ownerLinks) && ownerLinks.length ? ownerLinks.slice(0, 5) : linksFromSections(sections),
+        summary: resume.owner_short_description || summaryFromSections(sections) || resume.title
       };
     }));
 
@@ -144,7 +150,7 @@ router.get('/resume/:username', async (req, res, next) => {
       return res.json({
         owner: {
           ...slugResume.owner,
-          title: slugResume.title
+          shortDescription: slugResume.owner?.shortDescription || slugResume.title
         },
         resume: slugResume,
         sections: await resumes.sections(slugResume.id)
@@ -165,7 +171,11 @@ router.get('/resume/:username', async (req, res, next) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        title: resume.title
+        phone: user.phone,
+        profileImageUrl: user.profile_image_url,
+        title: user.profile_title,
+        shortDescription: user.short_description || resume.title,
+        socialLinks: user.social_links
       },
       resume,
       sections: await resumes.sections(resume.id)

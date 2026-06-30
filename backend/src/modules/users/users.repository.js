@@ -2,12 +2,22 @@ import { query } from '../../database/mysql.js';
 
 function mapUser(row) {
   if (!row) return null;
+  const parseJson = (value, fallback) => {
+    if (!value) return fallback;
+    if (typeof value !== 'string') return value;
+    try {
+      return JSON.parse(value);
+    } catch (_error) {
+      return fallback;
+    }
+  };
   return {
     ...row,
     is_active: Boolean(row.is_active),
-    feature_flags: typeof row.feature_flags === 'string'
-      ? JSON.parse(row.feature_flags || '{}')
-      : row.feature_flags
+    feature_flags: parseJson(row.feature_flags, {}),
+    professional_info: parseJson(row.professional_info, {}),
+    certificates: parseJson(row.certificates, []),
+    social_links: parseJson(row.social_links, [])
   };
 }
 
@@ -44,10 +54,11 @@ export class UserRepository {
   async update(id, data) {
     const fields = [];
     const params = { id };
+    const jsonKeys = new Set(['featureFlags', 'professional_info', 'certificates', 'social_links']);
     for (const [key, value] of Object.entries(data)) {
       const column = key === 'featureFlags' ? 'feature_flags' : key;
       fields.push(`${column} = :${key}`);
-      params[key] = key === 'featureFlags' ? JSON.stringify(value) : value;
+      params[key] = jsonKeys.has(key) ? JSON.stringify(value) : value;
     }
     if (fields.length) {
       await query(`UPDATE users SET ${fields.join(', ')} WHERE id = :id`, params);
@@ -55,4 +66,3 @@ export class UserRepository {
     return this.findById(id);
   }
 }
-

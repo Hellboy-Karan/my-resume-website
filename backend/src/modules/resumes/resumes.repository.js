@@ -22,11 +22,27 @@ function parseResume(row) {
       name: row.owner_name,
       username: row.owner_username,
       email: row.owner_email,
-      role: row.owner_role
+      role: row.owner_role,
+      phone: row.owner_phone,
+      profileImageUrl: row.owner_profile_image_url,
+      shortDescription: row.owner_short_description,
+      title: row.owner_profile_title,
+      address: row.owner_address,
+      city: row.owner_city,
+      state: row.owner_state,
+      country: row.owner_country,
+      postalCode: row.owner_postal_code,
+      aboutMe: row.owner_about_me,
+      socialLinks: typeof row.owner_social_links === 'string' ? JSON.parse(row.owner_social_links || '[]') : row.owner_social_links
     };
   }
   return resume;
 }
+
+const ownerSelect = `u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role,
+  u.phone AS owner_phone, u.profile_image_url AS owner_profile_image_url, u.short_description AS owner_short_description,
+  u.profile_title AS owner_profile_title, u.address AS owner_address, u.city AS owner_city, u.state AS owner_state,
+  u.country AS owner_country, u.postal_code AS owner_postal_code, u.about_me AS owner_about_me, u.social_links AS owner_social_links`;
 
 export class ResumeRepository {
   async create({ userId, title, slug, templateSlug = 'modern-developer' }) {
@@ -41,7 +57,7 @@ export class ResumeRepository {
 
   async findById(id) {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+      `SELECT r.*, ${ownerSelect}
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.id = :id
@@ -53,7 +69,7 @@ export class ResumeRepository {
 
   async findBySlug(slug) {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+      `SELECT r.*, ${ownerSelect}
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.slug = :slug
@@ -65,7 +81,7 @@ export class ResumeRepository {
 
   async findByUser(userId) {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+      `SELECT r.*, ${ownerSelect}
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.user_id = :userId
@@ -77,7 +93,7 @@ export class ResumeRepository {
 
   async findAll() {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+      `SELECT r.*, ${ownerSelect}
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        ORDER BY r.updated_at DESC`
@@ -87,7 +103,7 @@ export class ResumeRepository {
 
   async findPublished() {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+      `SELECT r.*, ${ownerSelect}
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.is_public = TRUE

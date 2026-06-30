@@ -3,6 +3,7 @@ import { body, param } from 'express-validator';
 import { requireAuth, requireRole } from '../../middlewares/auth.js';
 import { validate } from '../../middlewares/errorHandler.js';
 import { HttpError } from '../../common/httpError.js';
+import { resolvePermissions } from '../../middlewares/featureGate.js';
 import { UserRepository } from '../users/users.repository.js';
 import { ResumeRepository } from '../resumes/resumes.repository.js';
 import { query } from '../../database/mysql.js';
@@ -29,7 +30,8 @@ router.patch(
     try {
       const target = await users.findById(req.params.id);
       if (!target) throw new HttpError(404, 'User not found');
-      if (req.user.role === 'SUB_ADMIN' && target.role !== 'USER') throw new HttpError(403, 'Sub Admin can only manage users');
+      const permissions = resolvePermissions(req.user);
+      if (req.user.role === 'SUB_ADMIN' && (!permissions.canModerateResumes || target.role !== 'USER')) throw new HttpError(403, 'Sub Admin can only manage users when moderation is allowed');
       res.json({ user: await users.update(req.params.id, { is_active: req.body.isActive }) });
     } catch (error) {
       next(error);
@@ -38,14 +40,30 @@ router.patch(
 );
 
 router.patch(
+  '/users/:id/role',
+  requireRole('ADMIN'),
+  [param('id').isInt(), body('role').isIn(['USER', 'SUB_ADMIN', 'ADMIN'])],
+  validate,
+  async (req, res, next) => {
+    try {
+      const target = await users.findById(req.params.id);
+      if (!target) throw new HttpError(404, 'User not found');
+      res.json({ user: await users.update(req.params.id, { role: req.body.role }) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.patch(
   '/users/:id/features',
+  requireRole('ADMIN'),
   [param('id').isInt(), body('featureFlags').isObject()],
   validate,
   async (req, res, next) => {
     try {
       const target = await users.findById(req.params.id);
       if (!target) throw new HttpError(404, 'User not found');
-      if (req.user.role === 'SUB_ADMIN' && target.role !== 'USER') throw new HttpError(403, 'Sub Admin can only manage users');
       res.json({ user: await users.update(req.params.id, { featureFlags: req.body.featureFlags }) });
     } catch (error) {
       next(error);
@@ -53,8 +71,28 @@ router.patch(
   }
 );
 
-router.get('/resumes', async (_req, res, next) => {
+router.patch(
+  '/users/:id/permissions',
+  requireRole('ADMIN'),
+  [param('id').isInt(), body('permissions').isObject()],
+  validate,
+  async (req, res, next) => {
+    try {
+      const target = await users.findById(req.params.id);
+      if (!target) throw new HttpError(404, 'User not found');
+      res.json({ user: await users.update(req.params.id, { featureFlags: req.body.permissions }) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get('/resumes', async (req, res, next) => {
   try {
+    const permissions = resolvePermissions(req.user);
+    if (req.user.role === 'SUB_ADMIN' && !permissions.canViewAllResumes && !permissions.canModerateResumes) {
+      throw new HttpError(403, 'Sub Admin is not allowed to view all resumes');
+    }
     const allUsers = await users.list();
     const rows = [];
     for (const user of allUsers) {
@@ -68,6 +106,10 @@ router.get('/resumes', async (_req, res, next) => {
 
 router.get('/resume-users', async (req, res, next) => {
   try {
+    const permissions = resolvePermissions(req.user);
+    if (req.user.role === 'SUB_ADMIN' && !permissions.canViewAllResumes && !permissions.canModerateResumes) {
+      throw new HttpError(403, 'Sub Admin is not allowed to view resume management data');
+    }
     const page = Math.max(Number(req.query.page || 1), 1);
     const limit = Math.min(Math.max(Number(req.query.limit || 8), 1), 50);
     const offset = (page - 1) * limit;
@@ -95,6 +137,7 @@ router.get('/resume-users', async (req, res, next) => {
         u.email,
         u.username,
         u.role,
+        MAX(CAST(u.feature_flags AS CHAR)) AS feature_flags,
         u.created_at,
         MAX(r.updated_at) AS last_activity,
         SUBSTRING_INDEX(GROUP_CONCAT(r.id ORDER BY r.updated_at DESC), ',', 1) AS latest_resume_id,
@@ -139,6 +182,10 @@ router.get('/resume-users', async (req, res, next) => {
 
 router.get('/users/:id/resumes', [param('id').isInt()], validate, async (req, res, next) => {
   try {
+    const permissions = resolvePermissions(req.user);
+    if (req.user.role === 'SUB_ADMIN' && !permissions.canViewAllResumes && !permissions.canModerateResumes) {
+      throw new HttpError(403, 'Sub Admin is not allowed to view user resumes');
+    }
     const target = await users.findById(req.params.id);
     if (!target) throw new HttpError(404, 'User not found');
     if (req.user.role === 'SUB_ADMIN' && target.role !== 'USER') throw new HttpError(403, 'Sub Admin can only manage normal user resumes');
@@ -150,6 +197,10 @@ router.get('/users/:id/resumes', [param('id').isInt()], validate, async (req, re
 
 router.patch('/resumes/:id/visibility', [param('id').isInt(), body('isPublic').isBoolean()], validate, async (req, res, next) => {
   try {
+    const permissions = resolvePermissions(req.user);
+    if (req.user.role === 'SUB_ADMIN' && (!permissions.canModerateResumes || !permissions.canPublishResume)) {
+      throw new HttpError(403, 'Sub Admin is not allowed to publish or unpublish resumes');
+    }
     const resume = await resumes.findById(req.params.id);
     if (!resume) throw new HttpError(404, 'Resume not found');
     const owner = await users.findById(resume.user_id);
@@ -162,6 +213,10 @@ router.patch('/resumes/:id/visibility', [param('id').isInt(), body('isPublic').i
 
 router.delete('/resumes/:id', [param('id').isInt()], validate, async (req, res, next) => {
   try {
+    const permissions = resolvePermissions(req.user);
+    if (req.user.role === 'SUB_ADMIN' && !permissions.canModerateResumes) {
+      throw new HttpError(403, 'Sub Admin is not allowed to delete resumes');
+    }
     const resume = await resumes.findById(req.params.id);
     if (!resume) throw new HttpError(404, 'Resume not found');
     const owner = await users.findById(resume.user_id);

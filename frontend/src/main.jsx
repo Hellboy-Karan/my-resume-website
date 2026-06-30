@@ -12,6 +12,7 @@ import ResumeEditorPage from './pages/ResumeEditorPage.jsx';
 import TemplateSelectorPage from './pages/TemplateSelectorPage.jsx';
 import ResumeAnalyzerPage from './pages/ATSAnalyzerPage.jsx';
 import PublicResumePage from './pages/PublicResumePage.jsx';
+import ProfileSettingsPage from './pages/ProfileSettingsPage.jsx';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/templates" element={<TemplateSelectorPage />} />
             <Route path="/resume-analyzer" element={<ResumeAnalyzerPage />} />
             <Route path="/ats-analyzer" element={<ResumeAnalyzerPage />} />
+            <Route path="/settings" element={<ProfileSettingsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Route>

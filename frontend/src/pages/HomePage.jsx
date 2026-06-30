@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, Eye, FileText, LayoutTemplate, Sparkles, Users } from 'lucide-react';
 import { api } from '../api/client.js';
 import Skeleton from '../components/Skeleton.jsx';
-import { templateName } from '../data/templates.js';
+import { templateName, templates } from '../data/templates.js';
 
 const statsConfig = [
   ['totalUsers', 'Total Users', Users],
@@ -55,7 +55,7 @@ export default function HomePage() {
                   <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-black text-slate-500">Live</span>
                 </div>
                 <p className="mt-4 text-sm font-bold text-slate-500">{label}</p>
-                <strong className="mt-1 block text-3xl text-ink">{dashboard.stats[key] ?? 0}</strong>
+                <strong className="mt-1 block text-3xl text-ink">{key === 'totalTemplates' && !dashboard.stats[key] ? templates.length : dashboard.stats[key] ?? 0}</strong>
               </article>
             ))}
           </div>
@@ -125,19 +125,19 @@ function AdminFeaturedResumes({ resumes = [], page, setPage }) {
             {visible.map((resume) => (
               <article className="group rounded-md border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg" key={resume.id}>
                 <div className="flex items-start gap-4">
-                  {resume.profile_image_url && (
-                    <img className="h-20 w-20 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={resume.profile_image_url} alt={`${resume.owner_name} profile`} />
+                  {(resume.profile_image_url || resume.owner_profile_image_url) && (
+                    <img className="h-20 w-20 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={resume.profile_image_url || resume.owner_profile_image_url} alt={`${resume.owner_name} profile`} />
                   )}
                   <div className="min-w-0">
                     <h3 className="text-xl font-black text-ink">{resume.owner_name || 'Admin Resume'}</h3>
-                    <p className="mt-1 text-sm font-semibold text-slate-600">{resume.title || 'Professional Resume'}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">{resume.owner_profile_title || 'Professional Profile'}</p>
                     {resume.owner_email && <p className="mt-1 break-words text-sm text-slate-500">Email: {resume.owner_email}</p>}
-                    {resume.phone && <p className="mt-1 text-sm text-slate-500">Phone: {resume.phone}</p>}
+                    {(resume.owner_phone || resume.phone) && <p className="mt-1 text-sm text-slate-500">Phone: {resume.owner_phone || resume.phone}</p>}
                   </div>
                 </div>
 
                 <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">
-                  {resume.summary || 'Professional resume website with published profile, skills, projects, and experience details.'}
+                  {resume.owner_short_description || resume.summary || resume.title || 'Professional resume website with published profile, skills, projects, and experience details.'}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">

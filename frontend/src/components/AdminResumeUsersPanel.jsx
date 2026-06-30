@@ -1,9 +1,19 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Eye, Pencil, RefreshCw, Search, Shield, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import Skeleton from './Skeleton.jsx';
 import RoleBadge from './RoleBadge.jsx';
+
+const permissionOptions = [
+  ['canCreateResume', 'Can create resume'],
+  ['canEditOwnResume', 'Can edit own resume'],
+  ['canPublishResume', 'Can publish resume'],
+  ['canDeleteOwnResume', 'Can delete own resume'],
+  ['canViewAllResumes', 'Can view all resumes'],
+  ['canModerateResumes', 'Can moderate resumes'],
+  ['canManageTemplates', 'Can manage templates']
+];
 
 export default function AdminResumeUsersPanel({ currentUser }) {
   const [rows, setRows] = useState([]);
@@ -14,6 +24,7 @@ export default function AdminResumeUsersPanel({ currentUser }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [permissionEditor, setPermissionEditor] = useState(null);
 
   async function load(page = pagination.page) {
     setLoading(true);
@@ -74,6 +85,38 @@ export default function AdminResumeUsersPanel({ currentUser }) {
     }
   }
 
+  async function updateRole(row, role) {
+    setBusy(`role-${row.id}`);
+    setError('');
+    try {
+      const data = await api(`/admin/users/${row.id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role })
+      });
+      setRows(rows.map((item) => item.id === row.id ? { ...item, role: data.user.role, feature_flags: data.user.feature_flags } : item));
+    } catch (err) {
+      setError(err.message || 'Unable to update user role.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function savePermissions(row, nextPermissions) {
+    setBusy(`permissions-${row.id}`);
+    setError('');
+    try {
+      const data = await api(`/admin/users/${row.id}/permissions`, {
+        method: 'PATCH',
+        body: JSON.stringify({ permissions: nextPermissions })
+      });
+      setRows(rows.map((item) => item.id === row.id ? { ...item, feature_flags: data.user.feature_flags } : item));
+    } catch (err) {
+      setError(err.message || 'Unable to update user permissions.');
+    } finally {
+      setBusy('');
+    }
+  }
+
   useEffect(() => {
     load(1);
   }, [filters.role, filters.status]);
@@ -85,12 +128,14 @@ export default function AdminResumeUsersPanel({ currentUser }) {
 
   function canDeleteUserResume(ownerRole) {
     if (currentUser.role === 'ADMIN') return true;
-    return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER';
+    const permissions = parsePermissions(currentUser.feature_flags);
+    return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER' && (permissions.canModerateResumes ?? true);
   }
 
   function canEditUserResume(ownerRole) {
     if (currentUser.role === 'ADMIN') return true;
-    return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER';
+    const permissions = parsePermissions(currentUser.feature_flags);
+    return currentUser.role === 'SUB_ADMIN' && ownerRole === 'USER' && (permissions.canModerateResumes ?? true);
   }
 
   return (
@@ -152,8 +197,11 @@ export default function AdminResumeUsersPanel({ currentUser }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {rows.map((row) => (
-                <tr key={row.id} className="align-top">
+              {rows.map((row) => {
+                const permissions = parsePermissions(row.feature_flags);
+                return (
+                <Fragment key={row.id}>
+                <tr className="align-top">
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-3">
                       {row.profile_image_url && (
@@ -165,7 +213,20 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3"><RoleBadge role={row.role} /></td>
+                  <td className="px-3 py-3">
+                    {currentUser.role === 'ADMIN' ? (
+                      <div className="grid gap-2">
+                        <RoleBadge role={row.role} />
+                        <select className="input h-10 min-w-36" value={row.role} onChange={(event) => updateRole(row, event.target.value)} disabled={busy === `role-${row.id}`}>
+                          <option value="USER">User</option>
+                          <option value="SUB_ADMIN">Sub Admin</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <RoleBadge role={row.role} />
+                    )}
+                  </td>
                   <td className="px-3 py-3 font-bold">{row.total_resumes}</td>
                   <td className="px-3 py-3 font-bold text-emerald-700">{row.published_resumes || 0}</td>
                   <td className="px-3 py-3 font-bold text-slate-600">{row.draft_resumes || 0}</td>
@@ -181,10 +242,43 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                         <Pencil size={16} /> Edit
                       </Link>
                     )}
+                    {currentUser.role === 'ADMIN' && (
+                      <button className="btn-secondary px-3" type="button" onClick={() => setPermissionEditor(permissionEditor === row.id ? null : row.id)}>
+                        Permissions
+                      </button>
+                    )}
                     </div>
                   </td>
                 </tr>
-              ))}
+                {permissionEditor === row.id && currentUser.role === 'ADMIN' && (
+                  <tr key={`${row.id}-permissions`}>
+                    <td className="bg-slate-50 px-3 py-4" colSpan={8}>
+                      <div className="rounded-md border border-slate-200 bg-white p-4">
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <strong className="text-ink">Permissions for {row.name}</strong>
+                            <p className="text-sm text-slate-500">Changes are saved immediately.</p>
+                          </div>
+                          {busy === `permissions-${row.id}` && <span className="text-sm font-bold text-slate-500">Saving...</span>}
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                          {permissionOptions.map(([key, label]) => (
+                            <label className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-sm font-semibold text-slate-700" key={key}>
+                              <input
+                                type="checkbox"
+                                checked={permissions[key] ?? defaultPermissionValue(row.role, key)}
+                                onChange={(event) => savePermissions(row, { ...permissions, [key]: event.target.checked })}
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+              );})}
             </tbody>
           </table>
         </div>
@@ -217,7 +311,8 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                 <article className="rounded-md border border-slate-200 bg-white p-4" key={resume.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h4 className="font-black text-ink">{resume.title || 'Untitled Resume'}</h4>
+                      <h4 className="font-black text-ink">{selected.name}</h4>
+                      {resume.title && <p className="mt-1 text-sm leading-6 text-slate-600">{resume.title}</p>}
                       <p className="text-sm text-slate-600">Template: {resume.template_slug} | Updated: {formatDate(resume.updated_at)}</p>
                     </div>
                     <span className={`rounded-md px-2 py-1 text-xs font-black ${resume.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
@@ -249,6 +344,22 @@ export default function AdminResumeUsersPanel({ currentUser }) {
       )}
     </section>
   );
+}
+
+function parsePermissions(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (_error) {
+    return {};
+  }
+}
+
+function defaultPermissionValue(role, key) {
+  if (role === 'ADMIN') return true;
+  if (role === 'SUB_ADMIN') return ['canCreateResume', 'canEditOwnResume', 'canPublishResume', 'canDeleteOwnResume', 'canViewAllResumes', 'canModerateResumes'].includes(key);
+  return ['canCreateResume', 'canEditOwnResume', 'canPublishResume', 'canDeleteOwnResume'].includes(key);
 }
 
 function formatDate(value) {

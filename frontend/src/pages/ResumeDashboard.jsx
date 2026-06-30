@@ -84,19 +84,42 @@ export default function ResumeDashboard() {
     const ownerRole = resume.owner?.role;
     if (!user) return false;
     if (user.role === 'ADMIN') return true;
-    if (user.role === 'SUB_ADMIN') return ownerRole !== 'ADMIN';
-    return resume.user_id === user.id;
+    const permissions = resolveUiPermissions(user);
+    const isOwner = resume.user_id === user.id;
+    if (user.role === 'SUB_ADMIN') {
+      if (isOwner) return permissions.canEditOwnResume || permissions.canDeleteOwnResume;
+      return permissions.canModerateResumes && ownerRole !== 'ADMIN';
+    }
+    return isOwner && (permissions.canEditOwnResume || permissions.canDeleteOwnResume);
+  }
+
+  function canEdit(resume) {
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    const permissions = resolveUiPermissions(user);
+    const isOwner = resume.user_id === user.id;
+    if (user.role === 'SUB_ADMIN') return isOwner ? permissions.canEditOwnResume : permissions.canModerateResumes && resume.owner?.role !== 'ADMIN';
+    return isOwner && permissions.canEditOwnResume;
+  }
+
+  function canDelete(resume) {
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    const permissions = resolveUiPermissions(user);
+    const isOwner = resume.user_id === user.id;
+    if (user.role === 'SUB_ADMIN') return isOwner ? permissions.canDeleteOwnResume : permissions.canModerateResumes && resume.owner?.role === 'USER';
+    return isOwner && permissions.canDeleteOwnResume;
   }
 
   const visibleResumes = resumes.filter((resume) => {
-    const haystack = `${resume.title || ''} ${resume.owner?.name || ''} ${resume.template_slug || ''}`.toLowerCase();
+    const haystack = `${resume.title || ''} ${resume.owner?.shortDescription || ''} ${resume.owner?.name || ''} ${resume.template_slug || ''}`.toLowerCase();
     const matchesSearch = haystack.includes(search.toLowerCase());
     const matchesFilter = filter === 'all' || (filter === 'published' ? resume.is_public : !resume.is_public);
     return matchesSearch && matchesFilter;
   });
   const canSeeAdminPanel = user && ['ADMIN', 'SUB_ADMIN'].includes(user.role);
-  const canCreateResume = user && user.role !== 'USER';
-  const selectableResumes = visibleResumes.filter(canManage);
+  const canCreateResume = user && resolveUiPermissions(user).canCreateResume;
+  const selectableResumes = visibleResumes.filter(canDelete);
   const allSelected = selectableResumes.length > 0 && selectableResumes.every((resume) => selectedIds.includes(Number(resume.id)));
 
   function toggleResume(id) {
@@ -129,12 +152,12 @@ export default function ResumeDashboard() {
       <div className="mt-6 rounded-md border border-slate-200 bg-white p-5 shadow-soft">
         <div className="mb-3">
           <h2 className="text-lg font-black text-ink">Find Resumes</h2>
-          <p className="text-sm text-slate-600">Search by resume title, owner name, or selected template.</p>
+          <p className="text-sm text-slate-600">Search by owner name, short description, or selected template.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">
           <label className="relative block">
             <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input className="input h-12 pl-12 pr-4" placeholder="Search by title, owner, or template" value={search} onChange={(event) => setSearch(event.target.value)} />
+            <input className="input h-12 pl-12 pr-4" placeholder="Search by owner, description, or template" value={search} onChange={(event) => setSearch(event.target.value)} />
           </label>
           <select className="input h-12" value={filter} onChange={(event) => setFilter(event.target.value)}>
             <option value="all">All visibility</option>
@@ -168,19 +191,23 @@ export default function ResumeDashboard() {
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         {visibleResumes.map((resume) => {
           const publicHandle = resume.slug || resume.owner?.username || user?.username;
+          const ownerName = resume.owner?.name || user?.name || 'Public user';
+          const shortDescription = resume.owner?.shortDescription || resume.title || 'No short description yet.';
+          const profileImage = resume.profile_image_url || resume.owner?.profileImageUrl;
           return (
             <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft" key={resume.id}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   {canManage(resume) && <input className="mt-1" type="checkbox" checked={selectedIds.includes(Number(resume.id))} onChange={() => toggleResume(resume.id)} />}
-                  {resume.profile_image_url && (
-                    <img className="h-16 w-16 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={resume.profile_image_url} alt={`${resume.owner?.name || resume.title || 'Resume'} profile`} />
+                  {profileImage && (
+                    <img className="h-16 w-16 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={profileImage} alt={`${ownerName} profile`} />
                   )}
                   <div>
-                  <h2 className="text-xl font-black text-ink">{resume.title || 'Untitled Resume'}</h2>
+                  <h2 className="text-xl font-black text-ink">{ownerName}</h2>
+                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{shortDescription}</p>
                   <p className="mt-1 text-sm font-semibold text-slate-600">Template: {templateName(resume.template_slug)}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                    <span>Owner: <strong className="text-ink">{resume.owner?.name || user?.name || 'Public user'}</strong></span>
+                    <span>Owner: <strong className="text-ink">{ownerName}</strong></span>
                     <RoleBadge role={resume.owner?.role || user?.role || 'USER'} />
                   </div>
                   </div>
@@ -198,9 +225,9 @@ export default function ResumeDashboard() {
                 <Link className="btn-secondary" to={`/resume/${publicHandle}`}><Eye size={16} /> View</Link>
                 {canManage(resume) && (
                   <>
-                    <Link className="btn-primary" to={`/editor?resumeId=${resume.id}`}><Pencil size={16} /> Edit</Link>
-                    <button className="btn-secondary" onClick={load}><RefreshCw size={16} /> Update</button>
-                    <button className="btn-secondary" onClick={() => deleteResume(resume.id)} disabled={busy === `delete-${resume.id}`}><Trash2 size={16} /> Delete</button>
+                    {canEdit(resume) && <Link className="btn-primary" to={`/editor?resumeId=${resume.id}`}><Pencil size={16} /> Edit</Link>}
+                    {canEdit(resume) && <button className="btn-secondary" onClick={load}><RefreshCw size={16} /> Update</button>}
+                    {canDelete(resume) && <button className="btn-secondary" onClick={() => deleteResume(resume.id)} disabled={busy === `delete-${resume.id}`}><Trash2 size={16} /> Delete</button>}
                   </>
                 )}
               </div>
@@ -210,6 +237,44 @@ export default function ResumeDashboard() {
       </div>
     </section>
   );
+}
+
+function resolveUiPermissions(user) {
+  const flags = user?.feature_flags || {};
+  if (user?.role === 'ADMIN') {
+    return {
+      canCreateResume: true,
+      canEditOwnResume: true,
+      canPublishResume: true,
+      canDeleteOwnResume: true,
+      canViewAllResumes: true,
+      canModerateResumes: true,
+      canManageTemplates: true,
+      ...flags
+    };
+  }
+  if (user?.role === 'SUB_ADMIN') {
+    return {
+      canCreateResume: true,
+      canEditOwnResume: true,
+      canPublishResume: true,
+      canDeleteOwnResume: true,
+      canViewAllResumes: true,
+      canModerateResumes: true,
+      canManageTemplates: false,
+      ...flags
+    };
+  }
+  return {
+    canCreateResume: true,
+    canEditOwnResume: true,
+    canPublishResume: true,
+    canDeleteOwnResume: true,
+    canViewAllResumes: false,
+    canModerateResumes: false,
+    canManageTemplates: false,
+    ...flags
+  };
 }
 
 function FileTextIcon() {

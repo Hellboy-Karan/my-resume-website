@@ -136,8 +136,9 @@ function toTitle(value) {
 }
 
 function StandardResumeView({ owner, resume, sections, editable, selected, onSelect, onEdit, onDelete }) {
-  const socialLinks = sections.find((section) => ['social-links', 'links'].includes(section.type))?.content?.items || owner.links || [];
+  const socialLinks = sections.find((section) => ['social-links', 'links'].includes(section.type))?.content?.items || owner.socialLinks || owner.links || [];
   const linkLabels = socialLinks.slice(0, 2).map((link) => (typeof link === 'string' ? 'Link' : link.label)).filter(Boolean);
+  const shortDescription = owner.shortDescription || resume.title;
 
   return (
     <div className="resume-print-area bg-white font-serif text-black">
@@ -155,7 +156,8 @@ function StandardResumeView({ owner, resume, sections, editable, selected, onSel
               <span key={`${item}-${index}`}>{index > 0 ? ' || ' : ''}{item}</span>
             ))}
           </p>
-          <p className="mx-auto mt-2 max-w-4xl text-[16px] leading-7 text-black">{owner.title || resume.title}</p>
+          {owner.title && <p className="mx-auto mt-2 max-w-4xl text-[16px] font-bold leading-7 text-black">{owner.title}</p>}
+          {shortDescription && <p className="mx-auto mt-1 max-w-4xl text-[16px] leading-7 text-black">{shortDescription}</p>}
         </header>
 
         <div className="mt-10 space-y-10">
@@ -193,6 +195,9 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
   const darkHeader = ['sidebar', 'portfolio', 'creative', 'corporate', 'product-company', 'senior-product-engineer', 'management-executive', 'operations-manager', 'consulting-leadership'].includes(template);
   const headerText = darkHeader ? 'text-white' : 'text-ink';
   const mutedText = darkHeader ? 'text-white/75' : 'text-slate-600';
+  const profileImage = resume.profile_image_url || owner.profileImageUrl;
+  const socialLinks = owner.socialLinks || owner.links || [];
+  const shortDescription = owner.shortDescription || resume.title;
 
   if (template === 'standard-template') {
     return <StandardResumeView owner={owner} resume={resume} sections={sections} editable={editable} selected={selected} onSelect={onSelect} onEdit={onEdit} onDelete={onDelete} />;
@@ -210,22 +215,24 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
             </button>
           </div>
           <div className={`mt-3 flex flex-wrap items-center gap-5 ${template === 'minimal' ? 'gap-4' : ''}`}>
-            {resume.profile_image_url && (
-              <img className={profileImageClass(template)} src={resume.profile_image_url} alt={owner.name || 'Profile'} />
+            {profileImage && (
+              <img className={profileImageClass(template)} src={profileImage} alt={owner.name || 'Profile'} />
             )}
             <h1 className={`max-w-4xl text-4xl font-black md:text-6xl ${headerText}`}>{owner.name}</h1>
           </div>
-          <p className={`mt-4 max-w-3xl text-lg font-semibold leading-8 ${mutedText}`}>{owner.title || resume.title}</p>
+          {owner.title && <p className={`mt-4 max-w-3xl text-lg font-bold leading-8 ${mutedText}`}>{owner.title}</p>}
+          {shortDescription && <p className={`mt-2 max-w-3xl text-base font-semibold leading-7 ${mutedText}`}>{shortDescription}</p>}
           <div className={`mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold ${mutedText}`}>
             <span className={headerText}>Owner: {owner.name || 'Resume owner'}</span>
             <span className="print:hidden"><RoleBadge role={owner.role || resume.owner?.role || 'USER'} /></span>
             {owner.email && <span>Email: {owner.email}</span>}
+            {owner.phone && <span>Phone: {owner.phone}</span>}
             <span>{owner.location}</span>
             <span>Profile URL: /resume/{owner.username}</span>
           </div>
-          {Array.isArray(owner.links) && owner.links.length > 0 && (
+          {Array.isArray(socialLinks) && socialLinks.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {owner.links.slice(0, 5).map((link, index) => (
+              {socialLinks.slice(0, 5).map((link, index) => (
                 <a className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-bold ${['sidebar', 'portfolio', 'creative', 'corporate'].includes(template) ? 'border-white/25 text-white hover:bg-white/10' : 'border-slate-200 text-ink hover:border-coral hover:text-coral'}`} href={link.url} target={link.url?.startsWith('/') ? undefined : '_blank'} rel="noreferrer" key={`${link.url}-${index}`}>
                   {link.label || 'Profile'} <ExternalLink size={14} />
                 </a>

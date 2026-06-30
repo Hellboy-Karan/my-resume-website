@@ -22,7 +22,7 @@ export default function ResumeEditorPage() {
   const [socialDraft, setSocialDraft] = useState([{ label: 'LinkedIn', url: '' }]);
 
   const data = useMemo(() => ({
-    owner: resume?.owner ? { ...resume.owner, title: resume.title } : (user ? { name: user.name, username: user.username, email: user.email, title: resume?.title } : {}),
+    owner: resume?.owner ? { ...resume.owner, shortDescription: resume.owner.shortDescription || resume.title } : (user ? { name: user.name, username: user.username, email: user.email, shortDescription: resume?.title } : {}),
     resume: resume || {},
     sections
   }), [user, resume, sections]);
@@ -34,13 +34,15 @@ export default function ResumeEditorPage() {
     api('/resumes')
       .then(async (data) => {
         const requestedId = searchParams.get('resumeId');
+        const ownResume = (data.resumes || []).find((item) => item.user_id === user.id);
         const first = requestedId
           ? { id: requestedId }
-          : data.resumes[0] || (await api('/resumes', { method: 'POST', body: JSON.stringify({ title: `${user.name} Resume` }) })).resume;
+          : ownResume || (await api('/resumes', { method: 'POST', body: JSON.stringify({ title: `${user.name} Resume` }) })).resume;
         const full = await api(`/resumes/${first.id}`);
         setResume(full.resume);
         setSections(full.sections);
-      });
+      })
+      .catch((error) => setMessage(error.message || 'Unable to load editable resume.'));
   }, [user, searchParams]);
 
   useEffect(() => {
@@ -140,13 +142,18 @@ export default function ResumeEditorPage() {
   async function importResume(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!resume?.id) {
+      setMessage('Please wait until your editable resume is loaded, then import again.');
+      return;
+    }
     setUploading('import');
     const form = new FormData();
     form.append('resume', file);
     try {
       const data = await api(`/resumes/${resume.id}/import`, { method: 'POST', body: form });
-      setSections([...sections, ...data.sections]);
-      setMessage(`Imported ${data.sections.length} sections from resume file.`);
+      const importedSections = (data.sections || []).filter(Boolean);
+      setSections([...sections, ...importedSections]);
+      setMessage(`Imported ${importedSections.length} sections from resume file.`);
     } catch (error) {
       setMessage(error.message || 'Resume import failed.');
     } finally {
@@ -178,8 +185,11 @@ export default function ResumeEditorPage() {
         <aside className="editor-controls print:hidden xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto xl:pr-2">
           <div className="grid gap-5 pb-4">
             <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
-              <label className="text-xs font-black uppercase text-slate-500">Resume Title</label>
-              <input className="input mt-2 text-lg font-black" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} />
+              <label className="text-xs font-black uppercase text-slate-500">Owner Name</label>
+              <input className="input mt-2 text-lg font-black bg-slate-50" value={resume?.owner?.name || user.name || ''} readOnly />
+              <label className="mt-4 block text-xs font-black uppercase text-slate-500">Resume Short Description</label>
+              <textarea className="input mt-2 min-h-24" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} placeholder="Senior MERN Stack Developer with 5 years of experience." />
+              <Link className="mt-3 inline-flex text-sm font-bold text-coral hover:underline" to="/settings">Update owner profile in Settings</Link>
               <p className="mt-3 break-words rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: /resume/{resume?.slug || resume?.owner?.username || user.username}</p>
               <div className="mt-4 flex items-center gap-3 rounded-md bg-slate-50 p-3">
                 {resume?.profile_image_url ? <img className="h-20 w-20 rounded-md object-cover ring-2 ring-slate-200" src={resume.profile_image_url} alt="Profile preview" /> : <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-white text-xs font-bold text-slate-500 ring-1 ring-slate-200">No Image</div>}
