@@ -1,7 +1,8 @@
-import { Download, Edit3, ExternalLink, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Edit3, ExternalLink, GripVertical, Trash2 } from 'lucide-react';
 import ResumeSectionNav from './ResumeSectionNav.jsx';
 import RoleBadge from './RoleBadge.jsx';
-import { formatRichText } from '../utils/formatting.js';
+import { formatRichText, publicResumeUrl } from '../utils/formatting.js';
 
 function renderContent(section) {
   const content = section.content || {};
@@ -136,7 +137,22 @@ function toTitle(value) {
   return String(value).replace(/([A-Z])/g, ' $1').replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()).trim();
 }
 
-function StandardResumeView({ owner, resume, sections, editable, selected, onSelect, onEdit, onDelete }) {
+function DragHandle({ sectionId, onDragStart, onDragEnd }) {
+  return (
+    <button
+      className="print:hidden cursor-grab rounded border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50 active:cursor-grabbing"
+      draggable
+      type="button"
+      title="Drag to arrange section"
+      onDragStart={(event) => onDragStart(event, sectionId)}
+      onDragEnd={onDragEnd}
+    >
+      <GripVertical size={16} />
+    </button>
+  );
+}
+
+function StandardResumeView({ owner, resume, sections, editable, selected, onSelect, onEdit, onDelete, onReorder, dragHandlers, draggingId }) {
   const socialLinks = sections.find((section) => ['social-links', 'links'].includes(section.type))?.content?.items || owner.socialLinks || owner.links || [];
   const linkLabels = socialLinks.slice(0, 2).map((link) => (typeof link === 'string' ? 'Link' : link.label)).filter(Boolean);
   const shortDescription = owner.shortDescription || resume.title;
@@ -163,10 +179,17 @@ function StandardResumeView({ owner, resume, sections, editable, selected, onSel
 
         <div className="mt-10 space-y-10">
           {sections.map((section) => (
-            <section id={section.navId} className="scroll-mt-24" key={section.id}>
+            <section
+              id={section.navId}
+              className={`scroll-mt-24 rounded-md transition ${draggingId === String(section.id) ? 'opacity-60 ring-2 ring-coral' : ''}`}
+              key={section.id}
+              onDragOver={editable && onReorder ? dragHandlers.onDragOver : undefined}
+              onDrop={editable && onReorder ? (event) => dragHandlers.onDrop(event, section.id) : undefined}
+            >
               <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-500 pb-4">
                 <div className="flex items-center gap-3">
                   {editable && <input className="print:hidden" type="checkbox" checked={selected.includes(section.id)} onChange={() => onSelect?.(section.id)} />}
+                  {editable && onReorder && <DragHandle sectionId={section.id} onDragStart={dragHandlers.onDragStart} onDragEnd={dragHandlers.onDragEnd} />}
                   <h2 className="text-[24px] font-normal uppercase leading-none tracking-normal text-black">{section.title}</h2>
                 </div>
                 {editable && (
@@ -185,7 +208,8 @@ function StandardResumeView({ owner, resume, sections, editable, selected, onSel
   );
 }
 
-export default function ResumeView({ data, editable = false, selected = [], onSelect, onEdit, onDelete, template = 'modern-developer' }) {
+export default function ResumeView({ data, editable = false, selected = [], onSelect, onEdit, onDelete, onReorder, template = 'modern-developer' }) {
+  const [draggingId, setDraggingId] = useState(null);
   const owner = data?.owner || {};
   const resume = data?.resume || {};
   const sections = (data?.sections || []).filter(hasSectionData).map((section, index) => ({
@@ -200,8 +224,30 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
   const socialLinks = owner.socialLinks || owner.links || [];
   const shortDescription = owner.shortDescription || resume.title;
 
+  const dragHandlers = {
+    onDragStart(event, sectionId) {
+      setDraggingId(String(sectionId));
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(sectionId));
+    },
+    onDragOver(event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+    },
+    onDrop(event, targetId) {
+      event.preventDefault();
+      const sourceId = event.dataTransfer.getData('text/plain') || draggingId;
+      setDraggingId(null);
+      if (!sourceId || String(sourceId) === String(targetId)) return;
+      onReorder?.(sourceId, targetId);
+    },
+    onDragEnd() {
+      setDraggingId(null);
+    }
+  };
+
   if (template === 'standard-template') {
-    return <StandardResumeView owner={owner} resume={resume} sections={sections} editable={editable} selected={selected} onSelect={onSelect} onEdit={onEdit} onDelete={onDelete} />;
+    return <StandardResumeView owner={owner} resume={resume} sections={sections} editable={editable} selected={selected} onSelect={onSelect} onEdit={onEdit} onDelete={onDelete} onReorder={onReorder} dragHandlers={dragHandlers} draggingId={draggingId} />;
   }
 
   return (
@@ -229,7 +275,7 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
             {owner.email && <span>Email: {owner.email}</span>}
             {owner.phone && <span>Phone: {owner.phone}</span>}
             <span>{owner.location}</span>
-            <span>Profile URL: /resume/{owner.username}</span>
+            <span>Profile URL: {publicResumeUrl(resume.slug || owner.username)}</span>
           </div>
           {Array.isArray(socialLinks) && socialLinks.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -246,10 +292,17 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
       <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-5">
           {sections.map((section) => (
-            <article id={section.navId} key={section.id} className="scroll-mt-24 rounded-md border border-slate-200 bg-white p-5 shadow-soft">
+            <article
+              id={section.navId}
+              key={section.id}
+              className={`scroll-mt-24 rounded-md border border-slate-200 bg-white p-5 shadow-soft transition ${draggingId === String(section.id) ? 'opacity-60 ring-2 ring-coral' : ''}`}
+              onDragOver={editable && onReorder ? dragHandlers.onDragOver : undefined}
+              onDrop={editable && onReorder ? (event) => dragHandlers.onDrop(event, section.id) : undefined}
+            >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {editable && <input type="checkbox" checked={selected.includes(section.id)} onChange={() => onSelect?.(section.id)} />}
+                  {editable && onReorder && <DragHandle sectionId={section.id} onDragStart={dragHandlers.onDragStart} onDragEnd={dragHandlers.onDragEnd} />}
                   <h2 className="text-xl font-black text-ink">{section.title}</h2>
                 </div>
                 {editable && (

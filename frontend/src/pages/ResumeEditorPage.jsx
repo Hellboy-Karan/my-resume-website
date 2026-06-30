@@ -7,6 +7,7 @@ import RichTextEditor from '../components/RichTextEditor.jsx';
 import ResumeView from '../components/ResumeView.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { templates } from '../data/templates.js';
+import { publicResumeUrl } from '../utils/formatting.js';
 
 export default function ResumeEditorPage() {
   const { user } = useAuth();
@@ -114,6 +115,29 @@ export default function ResumeEditorPage() {
     setSelected([]);
   }
 
+  async function reorderSections(sourceId, targetId) {
+    const sourceIndex = sections.findIndex((section) => String(section.id) === String(sourceId));
+    const targetIndex = sections.findIndex((section) => String(section.id) === String(targetId));
+    if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+    const previous = sections;
+    const ordered = [...sections];
+    const [moved] = ordered.splice(sourceIndex, 1);
+    ordered.splice(targetIndex, 0, moved);
+    const withSortOrder = ordered.map((section, index) => ({ ...section, sort_order: index + 1 }));
+    setSections(withSortOrder);
+    try {
+      const data = await api(`/resumes/${resume.id}/sections/reorder`, {
+        method: 'POST',
+        body: JSON.stringify({ sectionIds: withSortOrder.map((section) => section.id) })
+      });
+      setSections(data.sections);
+      setMessage('Section order saved.');
+    } catch (error) {
+      setSections(previous);
+      setMessage(error.message || 'Unable to save section order.');
+    }
+  }
+
   async function uploadFile(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -208,7 +232,7 @@ export default function ResumeEditorPage() {
                 <button className="btn-secondary mt-2 w-full" type="button" onClick={() => saveResumePatch({ title: resume.title })}>Save Description</button>
               </div>
               <Link className="mt-3 inline-flex text-sm font-bold text-coral hover:underline" to="/settings">Update owner profile in Settings</Link>
-              <p className="mt-3 break-words rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: /resume/{resume?.slug || resume?.owner?.username || user.username}</p>
+              <p className="mt-3 break-words rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: {publicResumeUrl(resume?.slug || resume?.owner?.username || user.username)}</p>
               <div className="mt-4 flex items-center gap-3 rounded-md bg-slate-50 p-3">
                 {resume?.profile_image_url ? <img className="h-20 w-20 rounded-md object-cover ring-2 ring-slate-200" src={resume.profile_image_url} alt="Profile preview" /> : <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-white text-xs font-bold text-slate-500 ring-1 ring-slate-200">No Image</div>}
                 <div className="grid min-w-0 flex-1 gap-2">
@@ -250,6 +274,7 @@ export default function ResumeEditorPage() {
             onSelect={toggleSelect}
             onEdit={(section) => setEditing({ ...section, contentText: contentToRichText(section.content) })}
             onDelete={deleteSection}
+            onReorder={reorderSections}
           />
         </main>
       </div>
@@ -259,7 +284,9 @@ export default function ResumeEditorPage() {
             <input className="input" placeholder="Section title" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             <input className="input" placeholder="Section type" value={editing.type} onChange={(e) => setEditing({ ...editing, type: e.target.value })} />
             <RichTextEditor label="Formatted Content" value={editing.contentText} onChange={(value) => setEditing({ ...editing, contentText: value })} minHeight="260px" />
-            <button className="btn-primary"><Save size={16} /> Save Section</button>
+            <div className="sticky bottom-0 -mx-5 -mb-5 border-t border-slate-200 bg-white px-5 py-4">
+              <button className="btn-primary w-full"><Save size={16} /> Save Section</button>
+            </div>
           </form>
         </Modal>
       )}

@@ -124,6 +124,18 @@ export class ResumeService {
     return this.repository.updateSection(Number(sectionId), payload);
   }
 
+  async reorderSections(user, resumeId, sectionIds) {
+    await this.ensureOwnerOrAdmin(user, Number(resumeId));
+    const ids = sectionIds.map(Number).filter(Boolean);
+    if (!ids.length) throw new HttpError(400, 'Please provide section IDs to reorder');
+    const existing = await this.repository.sections(Number(resumeId));
+    const existingIds = new Set(existing.map((section) => Number(section.id)));
+    if (ids.some((id) => !existingIds.has(id))) {
+      throw new HttpError(400, 'One or more sections do not belong to this resume');
+    }
+    return this.repository.reorderSections(Number(resumeId), ids);
+  }
+
   async deleteSection(user, resumeId, sectionId) {
     await this.ensureOwnerOrAdmin(user, Number(resumeId));
     await this.repository.deleteSection(Number(sectionId));

@@ -152,6 +152,20 @@ router.put(
   }
 );
 
+router.post(
+  '/:resumeId/sections/reorder',
+  featureGate('canEditResume'),
+  [param('resumeId').isInt(), body('sectionIds').isArray({ min: 1 })],
+  validate,
+  async (req, res, next) => {
+    try {
+      res.json({ sections: await service.reorderSections(req.user, req.params.resumeId, req.body.sectionIds) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.delete(
   '/:resumeId/sections/:sectionId',
   featureGate('canDeleteResume'),
