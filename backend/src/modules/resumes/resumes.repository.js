@@ -12,11 +12,20 @@ function parseSection(row) {
 
 function parseResume(row) {
   if (!row) return null;
-  return {
+  const resume = {
     ...row,
     is_public: Boolean(row.is_public),
     watermark_enabled: Boolean(row.watermark_enabled)
   };
+  if (row.owner_name || row.owner_username || row.owner_role || row.owner_email) {
+    resume.owner = {
+      name: row.owner_name,
+      username: row.owner_username,
+      email: row.owner_email,
+      role: row.owner_role
+    };
+  }
+  return resume;
 }
 
 export class ResumeRepository {
@@ -31,23 +40,54 @@ export class ResumeRepository {
   }
 
   async findById(id) {
-    const rows = await query('SELECT * FROM resumes WHERE id = :id LIMIT 1', { id });
+    const rows = await query(
+      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+       FROM resumes r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.id = :id
+       LIMIT 1`,
+      { id }
+    );
     return parseResume(rows[0]);
   }
 
   async findBySlug(slug) {
-    const rows = await query('SELECT * FROM resumes WHERE slug = :slug LIMIT 1', { slug });
+    const rows = await query(
+      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+       FROM resumes r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.slug = :slug
+       LIMIT 1`,
+      { slug }
+    );
     return parseResume(rows[0]);
   }
 
   async findByUser(userId) {
-    const rows = await query('SELECT * FROM resumes WHERE user_id = :userId ORDER BY updated_at DESC', { userId });
+    const rows = await query(
+      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+       FROM resumes r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.user_id = :userId
+       ORDER BY r.updated_at DESC`,
+      { userId }
+    );
+    return rows.map(parseResume);
+  }
+
+  async findAll() {
+    const rows = await query(
+      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
+       FROM resumes r
+       JOIN users u ON u.id = r.user_id
+       ORDER BY r.updated_at DESC`
+    );
     return rows.map(parseResume);
   }
 
   async findPublished() {
     const rows = await query(
-      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email
+      `SELECT r.*, u.name AS owner_name, u.username AS owner_username, u.email AS owner_email, u.role AS owner_role
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.is_public = TRUE
@@ -78,6 +118,14 @@ export class ResumeRepository {
 
   async delete(id) {
     await query('DELETE FROM resumes WHERE id = :id', { id });
+  }
+
+  async bulkDelete(ids) {
+    if (!ids.length) return;
+    await query(
+      `DELETE FROM resumes WHERE id IN (${ids.map((_, index) => `:id${index}`).join(',')})`,
+      ids.reduce((params, id, index) => ({ ...params, [`id${index}`]: id }), {})
+    );
   }
 
   async addSection({ resumeId, type, title, content, sortOrder = 0 }) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Brain, Eye, ImagePlus, KeyRound, Plus, Save, Trash2 } from 'lucide-react';
 import { API_URL, api } from '../api/client.js';
 import Modal from '../components/Modal.jsx';
@@ -9,6 +9,7 @@ import { templates } from '../data/templates.js';
 
 export default function ResumeEditorPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [resume, setResume] = useState(null);
   const [sections, setSections] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -29,12 +30,15 @@ export default function ResumeEditorPage() {
     if (!user) return;
     api('/resumes')
       .then(async (data) => {
-        const first = data.resumes[0] || (await api('/resumes', { method: 'POST', body: JSON.stringify({ title: `${user.name} Resume` }) })).resume;
+        const requestedId = searchParams.get('resumeId');
+        const first = requestedId
+          ? { id: requestedId }
+          : data.resumes[0] || (await api('/resumes', { method: 'POST', body: JSON.stringify({ title: `${user.name} Resume` }) })).resume;
         const full = await api(`/resumes/${first.id}`);
         setResume(full.resume);
         setSections(full.sections);
       });
-  }, [user]);
+  }, [user, searchParams]);
 
   if (!user) {
     return (

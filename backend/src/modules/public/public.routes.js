@@ -94,7 +94,8 @@ router.get('/resumes', async (_req, res, next) => {
         owner: {
           name: resume.owner_name,
           username: resume.owner_username,
-          email: resume.owner_email
+          email: resume.owner_email,
+          role: resume.owner_role
         }
         }))
       ]
@@ -119,6 +120,7 @@ router.get('/resume/:username', async (req, res, next) => {
         name: user.name,
         username: user.username,
         email: user.email,
+        role: user.role,
         title: resume.title
       },
       resume,

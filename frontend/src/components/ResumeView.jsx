@@ -1,4 +1,6 @@
-import { Edit3, Trash2 } from 'lucide-react';
+import { Download, Edit3, Trash2 } from 'lucide-react';
+import ResumeSectionNav from './ResumeSectionNav.jsx';
+import RoleBadge from './RoleBadge.jsx';
 
 function renderContent(section) {
   const content = section.content || {};
@@ -14,25 +16,77 @@ function renderContent(section) {
   return <p className="max-w-4xl text-base leading-7 text-slate-700">{content.text || content.body || JSON.stringify(content)}</p>;
 }
 
+function hasSectionData(section) {
+  const content = section.content || {};
+  if (section.is_visible === false) return false;
+  if (!content || typeof content !== 'object') return Boolean(section.title);
+  if (typeof content.text === 'string' && content.text.trim()) return true;
+  if (typeof content.body === 'string' && content.body.trim()) return true;
+  if (Array.isArray(content.items) && content.items.length) return true;
+  return Object.values(content).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === 'object') return Object.values(value).some(Boolean);
+    return Boolean(String(value || '').trim());
+  });
+}
+
+function navIdFor(section, index) {
+  const base = String(section.type || section.title || `section-${index}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `resume-section-${base || index}-${section.id || index}`;
+}
+
+function headerStyle(template) {
+  if (template === 'sidebar') return 'bg-slate-950 text-white';
+  if (template === 'portfolio') return 'bg-cyan-950 text-white';
+  if (template === 'creative') return 'bg-violet-950 text-white';
+  if (template === 'minimal') return 'bg-white';
+  if (template === 'corporate') return 'bg-slate-800 text-white';
+  return 'bg-white';
+}
+
+function profileImageClass(template) {
+  if (template === 'sidebar') return 'h-28 w-28 rounded-md object-cover ring-4 ring-coral';
+  if (template === 'portfolio') return 'h-24 w-24 rounded-md object-cover ring-4 ring-yellow-300';
+  if (template === 'creative') return 'h-28 w-28 rounded-full object-cover ring-4 ring-coral';
+  if (template === 'minimal') return 'h-20 w-20 rounded-md object-cover ring-1 ring-slate-200';
+  return 'h-24 w-24 rounded-md object-cover ring-4 ring-white shadow-soft';
+}
+
 export default function ResumeView({ data, editable = false, selected = [], onSelect, onEdit, onDelete, template = 'modern-developer' }) {
   const owner = data?.owner || {};
   const resume = data?.resume || {};
-  const sections = data?.sections || [];
+  const sections = (data?.sections || []).filter(hasSectionData).map((section, index) => ({
+    ...section,
+    navId: navIdFor(section, index)
+  }));
   const sidebar = template === 'sidebar';
+  const headerText = ['sidebar', 'portfolio', 'creative', 'corporate'].includes(template) ? 'text-white' : 'text-ink';
+  const mutedText = ['sidebar', 'portfolio', 'creative', 'corporate'].includes(template) ? 'text-white/75' : 'text-slate-600';
 
   return (
     <div className={sidebar ? 'grid gap-6 lg:grid-cols-[320px_1fr]' : ''}>
-      <section className="section-band">
+      <ResumeSectionNav sections={sections} />
+      <section className={`border-b border-slate-200 ${headerStyle(template)}`}>
         <div className="mx-auto max-w-7xl px-4 py-10">
-          <p className="text-sm font-bold uppercase text-coral">{resume.template_slug || template}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-5">
-            {resume.profile_image_url && (
-              <img className="h-24 w-24 rounded-md object-cover ring-4 ring-white shadow-soft" src={resume.profile_image_url} alt={owner.name || 'Profile'} />
-            )}
-            <h1 className="max-w-4xl text-4xl font-black text-ink md:text-6xl">{owner.name}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+            <p className="text-sm font-bold uppercase text-coral">{resume.template_slug || template}</p>
+            <button className="btn-secondary" onClick={() => window.print()}>
+              <Download size={16} /> Print as PDF
+            </button>
           </div>
-          <p className="mt-4 max-w-3xl text-lg font-semibold leading-8 text-slate-600">{owner.title || resume.title}</p>
-          <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold text-slate-600">
+          <div className={`mt-3 flex flex-wrap items-center gap-5 ${template === 'minimal' ? 'gap-4' : ''}`}>
+            {resume.profile_image_url && (
+              <img className={profileImageClass(template)} src={resume.profile_image_url} alt={owner.name || 'Profile'} />
+            )}
+            <h1 className={`max-w-4xl text-4xl font-black md:text-6xl ${headerText}`}>{owner.name}</h1>
+          </div>
+          <p className={`mt-4 max-w-3xl text-lg font-semibold leading-8 ${mutedText}`}>{owner.title || resume.title}</p>
+          <div className={`mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold ${mutedText}`}>
+            <span className={headerText}>Owner: {owner.name || 'Resume owner'}</span>
+            <RoleBadge role={owner.role || resume.owner?.role || 'USER'} />
             <span>{owner.email}</span>
             <span>{owner.location}</span>
             <span>/resume/{owner.username}</span>
@@ -43,7 +97,7 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
       <section className="mx-auto w-full max-w-7xl px-4 py-8">
         <div className="grid gap-5">
           {sections.map((section) => (
-            <article key={section.id} className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
+            <article id={section.navId} key={section.id} className="scroll-mt-24 rounded-md border border-slate-200 bg-white p-5 shadow-soft">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {editable && <input type="checkbox" checked={selected.includes(section.id)} onChange={() => onSelect?.(section.id)} />}

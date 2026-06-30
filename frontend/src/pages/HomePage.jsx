@@ -25,18 +25,20 @@ export default function HomePage() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10">
+      <div className="rounded-md border border-slate-200 bg-white p-6 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-black uppercase text-coral">AI Resume Builder by Karan Kumar Sharma</p>
           <h1 className="mt-2 text-4xl font-black text-ink">Resume Platform Dashboard</h1>
           <p className="mt-2 max-w-3xl text-slate-600">Create, analyze, edit, and share professional resume websites with companies.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
           <Link className="btn-primary" to="/editor">Create Resume</Link>
           <Link className="btn-secondary" to="/resume-analyzer">Resume Analyzer</Link>
           <Link className="btn-secondary" to="/templates">Browse Templates</Link>
           <Link className="btn-secondary" to="/resume">Public Resumes</Link>
         </div>
+      </div>
       </div>
 
       {error && <p className="mt-6 rounded-md bg-rose-50 p-3 text-sm font-semibold text-rose-700">Unable to load dashboard right now. Please try again.</p>}
@@ -46,10 +48,13 @@ export default function HomePage() {
         <>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {statsConfig.map(([key, label, Icon]) => (
-              <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft" key={key}>
-                <Icon className="text-coral" size={22} />
+              <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg" key={key}>
+                <div className="flex items-center justify-between">
+                  <Icon className="text-coral" size={22} />
+                  <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-black text-slate-500">Live</span>
+                </div>
                 <p className="mt-4 text-sm font-bold text-slate-500">{label}</p>
-                <strong className="mt-1 block text-3xl text-ink">{dashboard.stats[key]}</strong>
+                <strong className="mt-1 block text-3xl text-ink">{dashboard.stats[key] ?? 0}</strong>
               </article>
             ))}
           </div>
@@ -133,4 +138,3 @@ function Metric({ label, value }) {
     </div>
   );
 }
-
