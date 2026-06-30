@@ -7,6 +7,7 @@ import RoleBadge from '../components/RoleBadge.jsx';
 import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { templateName } from '../data/templates.js';
+import { richTextToPlain } from '../utils/formatting.js';
 
 export default function ResumeDashboard() {
   const { user } = useAuth();
@@ -192,7 +193,7 @@ export default function ResumeDashboard() {
         {visibleResumes.map((resume) => {
           const publicHandle = resume.slug || resume.owner?.username || user?.username;
           const ownerName = resume.owner?.name || user?.name || 'Public user';
-          const shortDescription = resume.owner?.shortDescription || resume.title || 'No short description yet.';
+          const shortDescription = richTextToPlain(resume.owner?.shortDescription || resume.title || 'No short description yet.');
           const profileImage = resume.profile_image_url || resume.owner?.profileImageUrl;
           return (
             <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft" key={resume.id}>

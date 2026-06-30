@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ImagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { API_URL, api } from '../api/client.js';
+import RichTextEditor from '../components/RichTextEditor.jsx';
 import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -360,18 +361,7 @@ function TextField({ label, value, onChange, readOnly = false, required = false 
 }
 
 function TextArea({ label, value, onChange, rows = 4, placeholder = '' }) {
-  return (
-    <label className="block">
-      <span className="text-xs font-black uppercase text-slate-500">{label}</span>
-      <textarea
-        className="input mt-2 min-h-28"
-        rows={rows}
-        value={value || ''}
-        placeholder={placeholder}
-        onChange={(event) => onChange?.(event.target.value)}
-      />
-    </label>
-  );
+  return <RichTextEditor label={label} value={value || ''} onChange={onChange} minHeight={`${Math.max(rows * 42, 120)}px`} placeholder={placeholder} />;
 }
 
 function toForm(user) {

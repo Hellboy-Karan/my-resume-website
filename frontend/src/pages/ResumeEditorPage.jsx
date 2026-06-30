@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Brain, Eye, ImagePlus, KeyRound, Plus, Save, Trash2 } from 'lucide-react';
 import { API_URL, api } from '../api/client.js';
 import Modal from '../components/Modal.jsx';
+import RichTextEditor from '../components/RichTextEditor.jsx';
 import ResumeView from '../components/ResumeView.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { templates } from '../data/templates.js';
@@ -202,8 +203,10 @@ export default function ResumeEditorPage() {
             <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
               <label className="text-xs font-black uppercase text-slate-500">Owner Name</label>
               <input className="input mt-2 text-lg font-black bg-slate-50" value={resume?.owner?.name || user.name || ''} readOnly />
-              <label className="mt-4 block text-xs font-black uppercase text-slate-500">Resume Short Description</label>
-              <textarea className="input mt-2 min-h-24" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} placeholder="Senior MERN Stack Developer with 5 years of experience." />
+              <div className="mt-4">
+                <RichTextEditor label="Resume Short Description" value={resume?.title || ''} onChange={(value) => setResume({ ...resume, title: value })} minHeight="120px" placeholder="Senior MERN Stack Developer with 5 years of experience." />
+                <button className="btn-secondary mt-2 w-full" type="button" onClick={() => saveResumePatch({ title: resume.title })}>Save Description</button>
+              </div>
               <Link className="mt-3 inline-flex text-sm font-bold text-coral hover:underline" to="/settings">Update owner profile in Settings</Link>
               <p className="mt-3 break-words rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: /resume/{resume?.slug || resume?.owner?.username || user.username}</p>
               <div className="mt-4 flex items-center gap-3 rounded-md bg-slate-50 p-3">
@@ -245,7 +248,7 @@ export default function ResumeEditorPage() {
             selected={selected}
             template={resume?.template_slug}
             onSelect={toggleSelect}
-            onEdit={(section) => setEditing({ ...section, contentText: JSON.stringify(section.content, null, 2) })}
+            onEdit={(section) => setEditing({ ...section, contentText: contentToRichText(section.content) })}
             onDelete={deleteSection}
           />
         </main>
@@ -255,7 +258,7 @@ export default function ResumeEditorPage() {
           <form className="grid gap-4" onSubmit={saveSection}>
             <input className="input" placeholder="Section title" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
             <input className="input" placeholder="Section type" value={editing.type} onChange={(e) => setEditing({ ...editing, type: e.target.value })} />
-            <textarea className="input min-h-56 font-mono" placeholder='{"text":"Your content"}' value={editing.contentText} onChange={(e) => setEditing({ ...editing, contentText: e.target.value })} />
+            <RichTextEditor label="Formatted Content" value={editing.contentText} onChange={(value) => setEditing({ ...editing, contentText: value })} minHeight="260px" />
             <button className="btn-primary"><Save size={16} /> Save Section</button>
           </form>
         </Modal>
@@ -279,6 +282,15 @@ function parseSectionContent(value) {
   } catch (_error) {
     return { text: value };
   }
+}
+
+function contentToRichText(content = {}) {
+  if (typeof content === 'string') return content;
+  if (content.text || content.body) return content.text || content.body;
+  if (Array.isArray(content.items)) {
+    return `<ul>${content.items.map((item) => `<li>${typeof item === 'string' ? item : item.description || item.name || JSON.stringify(item)}</li>`).join('')}</ul>`;
+  }
+  return Object.keys(content).length ? JSON.stringify(content, null, 2) : '';
 }
 
 function normalizeSocialLinks(items) {

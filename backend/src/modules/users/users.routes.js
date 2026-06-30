@@ -4,6 +4,7 @@ import { requireAuth } from '../../middlewares/auth.js';
 import { AuthService } from '../auth/auth.service.js';
 import { validate } from '../../middlewares/errorHandler.js';
 import { UserRepository } from './users.repository.js';
+import { sanitizeContent, sanitizeRichText } from '../../utils/richText.js';
 
 const router = Router();
 const authService = new AuthService();
@@ -54,12 +55,12 @@ router.put(
         state: req.body.state,
         country: req.body.country,
         postal_code: req.body.postalCode,
-        about_me: req.body.aboutMe,
-        short_description: req.body.shortDescription,
+        about_me: sanitizeRichText(req.body.aboutMe),
+        short_description: sanitizeRichText(req.body.shortDescription),
         profile_title: req.body.profileTitle,
         theme_preference: req.body.themePreference,
-        professional_info: req.body.professionalInfo,
-        certificates: req.body.certificates,
+        professional_info: sanitizeContent(req.body.professionalInfo),
+        certificates: sanitizeContent(req.body.certificates),
         social_links: req.body.socialLinks
       };
       Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);

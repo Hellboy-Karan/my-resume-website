@@ -83,6 +83,50 @@ body {
   min-width: 980px;
 }
 
+.rich-text {
+  @apply max-w-4xl text-base leading-7;
+  color: inherit;
+}
+
+.rich-text p {
+  margin: 0 0 0.75rem;
+}
+
+.rich-text ul,
+.rich-text ol,
+.rich-editor-content ul,
+.rich-editor-content ol {
+  margin: 0.5rem 0 0.75rem 1.5rem;
+  padding-left: 1rem;
+}
+
+.rich-text ul,
+.rich-editor-content ul {
+  list-style: disc;
+}
+
+.rich-text ol,
+.rich-editor-content ol {
+  list-style: decimal;
+}
+
+.rich-text li,
+.rich-editor-content li {
+  margin: 0.25rem 0;
+}
+
+.rich-text a,
+.rich-editor-content a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.rich-editor-content:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+}
+
 @media (max-width: 1279px) {
   .resume-preview-shell .resume-print-area {
     min-width: 0;
