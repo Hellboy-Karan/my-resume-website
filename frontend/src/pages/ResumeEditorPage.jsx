@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, ImagePlus, KeyRound, Plus, Save, Trash2 } from 'lucide-react';
+import { Brain, Eye, ImagePlus, KeyRound, Plus, Save, Trash2 } from 'lucide-react';
 import { API_URL, api } from '../api/client.js';
 import Modal from '../components/Modal.jsx';
 import ResumeView from '../components/ResumeView.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-
-const templates = ['modern-developer', 'ats-friendly', 'minimal', 'sidebar', 'portfolio'];
+import { templates } from '../data/templates.js';
 
 export default function ResumeEditorPage() {
   const { user } = useAuth();
@@ -16,6 +15,7 @@ export default function ResumeEditorPage() {
   const [editing, setEditing] = useState(null);
   const [aiModal, setAiModal] = useState(false);
   const [apiModal, setApiModal] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
 
@@ -158,9 +158,10 @@ export default function ResumeEditorPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <select className="input w-52" value={resume?.template_slug || 'modern-developer'} onChange={(e) => saveResumePatch({ templateSlug: e.target.value })}>
-              {templates.map((item) => <option key={item} value={item}>{item}</option>)}
+              {templates.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
             </select>
             <button className="btn-secondary" onClick={() => setEditing({ title: '', type: 'custom', contentText: '' })}><Plus size={16} /> Section</button>
+            <button className="btn-secondary" onClick={() => setPreviewOpen(true)}><Eye size={16} /> Preview</button>
             <button className="btn-secondary" onClick={() => setAiModal(true)}><Brain size={16} /> AI</button>
             <button className="btn-secondary" onClick={() => setApiModal(true)}><KeyRound size={16} /> Own API</button>
             <label className="btn-secondary cursor-pointer"><ImagePlus size={16} /> {uploading === 'project' ? 'Uploading...' : 'Upload'}<input className="hidden" type="file" onChange={uploadFile} /></label>
@@ -191,6 +192,13 @@ export default function ResumeEditorPage() {
       )}
       {aiModal && <AiSuggestionModal resume={resume} onClose={() => setAiModal(false)} />}
       {apiModal && <ApiSettingsModal onClose={() => setApiModal(false)} />}
+      {previewOpen && (
+        <Modal title="Resume Preview" onClose={() => setPreviewOpen(false)}>
+          <div className="max-h-[75vh] overflow-auto rounded-md border border-slate-200">
+            <ResumeView data={data} template={resume?.template_slug} />
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

@@ -5,10 +5,15 @@ export async function api(path, options = {}) {
   const headers = options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: { ...headers, ...(options.headers || {}) }
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: { ...headers, ...(options.headers || {}) }
+    });
+  } catch (_error) {
+    throw new Error('Unable to connect to the server. Please make sure the backend is running and try again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));

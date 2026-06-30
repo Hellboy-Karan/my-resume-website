@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { api } from '../api/client.js';
 import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -12,6 +12,8 @@ export default function ResumeDashboard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
 
   async function load() {
     setLoading(true);
@@ -20,7 +22,7 @@ export default function ResumeDashboard() {
       const data = user ? await api('/resumes') : await api('/public/resumes');
       setResumes(data.resumes || []);
     } catch (err) {
-      setError(err.message);
+      setError('Unable to load resumes. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -36,7 +38,7 @@ export default function ResumeDashboard() {
       const data = await api('/resumes', { method: 'POST', body: JSON.stringify({ title: 'Untitled Resume' }) });
       setResumes([data.resume, ...resumes]);
     } catch (err) {
-      setError(err.message);
+      setError('Unable to create resume. Please try again.');
     } finally {
       setBusy('');
     }
@@ -48,7 +50,7 @@ export default function ResumeDashboard() {
       await api(`/resumes/${id}`, { method: 'DELETE' });
       setResumes(resumes.filter((resume) => resume.id !== id));
     } catch (err) {
-      setError(err.message);
+      setError('Unable to delete resume. Please try again.');
     } finally {
       setBusy('');
     }
@@ -57,6 +59,13 @@ export default function ResumeDashboard() {
   function canManage(resume) {
     return user && (user.role === 'ADMIN' || resume.user_id === user.id);
   }
+
+  const visibleResumes = resumes.filter((resume) => {
+    const haystack = `${resume.title || ''} ${resume.owner?.name || ''} ${resume.template_slug || ''}`.toLowerCase();
+    const matchesSearch = haystack.includes(search.toLowerCase());
+    const matchesFilter = filter === 'all' || (filter === 'published' ? resume.is_public : !resume.is_public);
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10">
@@ -71,19 +80,32 @@ export default function ResumeDashboard() {
         </div>
       </div>
 
+      <div className="mt-6 grid gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-soft md:grid-cols-[1fr_220px]">
+        <label className="relative">
+          <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+          <input className="input pl-10" placeholder="Search by title, owner, or template" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <select className="input" value={filter} onChange={(event) => setFilter(event.target.value)}>
+          <option value="all">All visibility</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+
       {error && <p className="mt-4 rounded-md bg-rose-50 p-3 text-sm font-semibold text-rose-700">{error}</p>}
       {loading && <div className="mt-6 rounded-md border border-slate-200 bg-white p-6"><Skeleton lines={6} /></div>}
 
-      {!loading && !resumes.length && (
+      {!loading && !visibleResumes.length && (
         <div className="mt-8 rounded-md border border-dashed border-slate-300 bg-white p-10 text-center shadow-soft">
-          <h2 className="text-2xl font-black text-ink">No resumes found</h2>
-          <p className="mt-2 text-slate-600">{user ? 'Create your first resume to publish a shareable website.' : 'No published resumes are available yet.'}</p>
+          <FileTextIcon />
+          <h2 className="mt-4 text-2xl font-black text-ink">No resumes available</h2>
+          <p className="mt-2 text-slate-600">{user ? 'Create your first resume or change your search filters.' : 'No published resumes found.'}</p>
           {user && <button className="btn-primary mt-5" onClick={createResume}>Create your first resume</button>}
         </div>
       )}
 
       <div className="mt-6 grid gap-5 md:grid-cols-2">
-        {resumes.map((resume) => {
+        {visibleResumes.map((resume) => {
           const ownerUsername = resume.owner?.username || user?.username;
           return (
             <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft" key={resume.id}>
@@ -120,8 +142,11 @@ export default function ResumeDashboard() {
   );
 }
 
+function FileTextIcon() {
+  return <div className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-slate-100 text-slate-500"><Eye size={22} /></div>;
+}
+
 function formatDate(value) {
   if (!value) return 'N/A';
   return new Date(value).toLocaleDateString();
 }
-
