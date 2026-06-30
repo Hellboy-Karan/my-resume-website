@@ -191,6 +191,7 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                 <th className="px-3 py-3">Total</th>
                 <th className="px-3 py-3">Published</th>
                 <th className="px-3 py-3">Draft</th>
+                <th className="px-3 py-3">Views</th>
                 <th className="px-3 py-3">Created</th>
                 <th className="px-3 py-3">Last Activity</th>
                 <th className="px-3 py-3">Actions</th>
@@ -230,6 +231,7 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                   <td className="px-3 py-3 font-bold">{row.total_resumes}</td>
                   <td className="px-3 py-3 font-bold text-emerald-700">{row.published_resumes || 0}</td>
                   <td className="px-3 py-3 font-bold text-slate-600">{row.draft_resumes || 0}</td>
+                  <td className="px-3 py-3 font-bold text-slate-600">{row.total_views || 0}</td>
                   <td className="px-3 py-3">{formatDate(row.created_at)}</td>
                   <td className="px-3 py-3">{formatDate(row.last_activity)}</td>
                   <td className="px-3 py-3">
@@ -252,7 +254,7 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                 </tr>
                 {permissionEditor === row.id && currentUser.role === 'ADMIN' && (
                   <tr key={`${row.id}-permissions`}>
-                    <td className="bg-slate-50 px-3 py-4" colSpan={8}>
+                    <td className="bg-slate-50 px-3 py-4" colSpan={9}>
                       <div className="rounded-md border border-slate-200 bg-white p-4">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                           <div>
@@ -313,7 +315,7 @@ export default function AdminResumeUsersPanel({ currentUser }) {
                     <div>
                       <h4 className="font-black text-ink">{selected.name}</h4>
                       {resume.title && <p className="mt-1 text-sm leading-6 text-slate-600">{resume.title}</p>}
-                      <p className="text-sm text-slate-600">Template: {resume.template_slug} | Updated: {formatDate(resume.updated_at)}</p>
+                      <p className="text-sm text-slate-600">Template: {resume.template_slug} | Views: {resume.view_count || 0} | Updated: {formatDate(resume.updated_at)}</p>
                     </div>
                     <span className={`rounded-md px-2 py-1 text-xs font-black ${resume.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                       {resume.is_public ? 'Published' : 'Draft'}

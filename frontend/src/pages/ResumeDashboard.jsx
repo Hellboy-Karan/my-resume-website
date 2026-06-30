@@ -196,11 +196,11 @@ export default function ResumeDashboard() {
           const profileImage = resume.profile_image_url || resume.owner?.profileImageUrl;
           return (
             <article className="rounded-md border border-slate-200 bg-white p-5 shadow-soft" key={resume.id}>
-              <div className="flex items-start justify-between gap-4">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_150px]">
                 <div className="flex items-start gap-3">
-                  {canManage(resume) && <input className="mt-1" type="checkbox" checked={selectedIds.includes(Number(resume.id))} onChange={() => toggleResume(resume.id)} />}
+                  {canDelete(resume) && <input className="mt-0.5" type="checkbox" checked={selectedIds.includes(Number(resume.id))} onChange={() => toggleResume(resume.id)} />}
                   {profileImage && (
-                    <img className="h-16 w-16 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={profileImage} alt={`${ownerName} profile`} />
+                    <img className="mt-6 h-16 w-16 shrink-0 rounded-md object-cover ring-1 ring-slate-200" src={profileImage} alt={`${ownerName} profile`} />
                   )}
                   <div>
                   <h2 className="text-xl font-black text-ink">{ownerName}</h2>
@@ -212,25 +212,22 @@ export default function ResumeDashboard() {
                   </div>
                   </div>
                 </div>
-                <span className={`rounded-md px-2 py-1 text-xs font-black ${resume.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                  {resume.is_public ? 'Published' : 'Draft'}
-                </span>
+                <div className="flex flex-wrap items-start gap-2 lg:flex-col lg:items-stretch">
+                  <span className={`rounded-md px-2 py-1 text-center text-xs font-black ${resume.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {resume.is_public ? 'Published' : 'Draft'}
+                  </span>
+                  <Link className="btn-secondary w-full" to={`/resume/${publicHandle}`}><Eye size={16} /> View</Link>
+                  {canEdit(resume) && <Link className="btn-primary w-full" to={`/editor?resumeId=${resume.id}`}><Pencil size={16} /> Edit</Link>}
+                  {canEdit(resume) && <button className="btn-secondary w-full" onClick={load}><RefreshCw size={16} /> Update</button>}
+                  {canDelete(resume) && <button className="btn-secondary w-full" onClick={() => deleteResume(resume.id)} disabled={busy === `delete-${resume.id}`}><Trash2 size={16} /> Delete</button>}
+                </div>
               </div>
-              <dl className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+              <dl className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-4">
                 <div><dt className="font-bold text-slate-500">Created</dt><dd>{formatDate(resume.created_at)}</dd></div>
                 <div><dt className="font-bold text-slate-500">Updated</dt><dd>{formatDate(resume.updated_at)}</dd></div>
                 <div><dt className="font-bold text-slate-500">Visibility</dt><dd>{resume.is_public ? 'Public' : 'Private'}</dd></div>
+                <div><dt className="font-bold text-slate-500">Views</dt><dd>{resume.view_count || 0}</dd></div>
               </dl>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link className="btn-secondary" to={`/resume/${publicHandle}`}><Eye size={16} /> View</Link>
-                {canManage(resume) && (
-                  <>
-                    {canEdit(resume) && <Link className="btn-primary" to={`/editor?resumeId=${resume.id}`}><Pencil size={16} /> Edit</Link>}
-                    {canEdit(resume) && <button className="btn-secondary" onClick={load}><RefreshCw size={16} /> Update</button>}
-                    {canDelete(resume) && <button className="btn-secondary" onClick={() => deleteResume(resume.id)} disabled={busy === `delete-${resume.id}`}><Trash2 size={16} /> Delete</button>}
-                  </>
-                )}
-              </div>
             </article>
           );
         })}

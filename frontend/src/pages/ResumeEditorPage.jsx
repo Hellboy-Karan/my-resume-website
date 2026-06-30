@@ -21,11 +21,26 @@ export default function ResumeEditorPage() {
   const [uploading, setUploading] = useState('');
   const [socialDraft, setSocialDraft] = useState([{ label: 'LinkedIn', url: '' }]);
 
+  const previewSections = useMemo(() => {
+    if (!editing) return sections;
+    const draft = {
+      ...editing,
+      id: editing.id || 'draft-section',
+      title: editing.title || 'Draft Section',
+      type: editing.type || 'custom',
+      content: parseSectionContent(editing.contentText || ''),
+      is_visible: true
+    };
+    return editing.id
+      ? sections.map((section) => section.id === editing.id ? draft : section)
+      : [...sections, draft];
+  }, [sections, editing]);
+
   const data = useMemo(() => ({
     owner: resume?.owner ? { ...resume.owner, shortDescription: resume.owner.shortDescription || resume.title } : (user ? { name: user.name, username: user.username, email: user.email, shortDescription: resume?.title } : {}),
     resume: resume || {},
-    sections
-  }), [user, resume, sections]);
+    sections: previewSections
+  }), [user, resume, previewSections]);
   const socialSection = useMemo(() => sections.find((section) => ['social-links', 'links'].includes(section.type)), [sections]);
   const socialSignature = JSON.stringify(socialSection?.content?.items || []);
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { BarChart3, FileText, LogOut, Settings, ShieldCheck, UserRound, Users } from 'lucide-react';
+import { BarChart3, FileText, LogOut, Moon, Settings, ShieldCheck, Sun, UserRound, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import RoleBadge from './RoleBadge.jsx';
 
@@ -12,7 +12,7 @@ const nav = [
 ];
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, themePreference, setThemePreference } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -47,6 +47,14 @@ export default function AppLayout() {
             ))}
           </nav>
           <div className="relative flex items-center gap-2" ref={menuRef}>
+            <label className="hidden items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-600 lg:flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              {themePreference === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+              <select className="bg-transparent outline-none" value={themePreference} onChange={(event) => setThemePreference(event.target.value)}>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+            </label>
             {user ? (
               <>
                 <button

@@ -132,6 +132,11 @@ export class ResumeRepository {
     return this.findById(id);
   }
 
+  async incrementViewCount(id) {
+    await query('UPDATE resumes SET view_count = view_count + 1 WHERE id = :id', { id });
+    return this.findById(id);
+  }
+
   async delete(id) {
     await query('DELETE FROM resumes WHERE id = :id', { id });
   }

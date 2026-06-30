@@ -37,6 +37,7 @@ router.put(
     body('aboutMe').optional({ nullable: true }).isString(),
     body('shortDescription').optional({ nullable: true }).isString(),
     body('profileTitle').optional({ nullable: true }).isString(),
+    body('themePreference').optional().isIn(['light', 'dark', 'system']),
     body('professionalInfo').optional().isObject(),
     body('certificates').optional().isArray(),
     body('socialLinks').optional().isArray({ max: 5 })
@@ -56,6 +57,7 @@ router.put(
         about_me: req.body.aboutMe,
         short_description: req.body.shortDescription,
         profile_title: req.body.profileTitle,
+        theme_preference: req.body.themePreference,
         professional_info: req.body.professionalInfo,
         certificates: req.body.certificates,
         social_links: req.body.socialLinks

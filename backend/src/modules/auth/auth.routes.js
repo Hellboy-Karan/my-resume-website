@@ -37,5 +37,48 @@ router.post(
   }
 );
 
-export default router;
+router.post(
+  '/forgot-password/request',
+  [body('email').isEmail()],
+  validate,
+  async (req, res, next) => {
+    try {
+      res.json(await authService.requestPasswordReset(req.body.email));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
+router.post(
+  '/forgot-password/verify',
+  [body('email').isEmail(), body('otp').trim().isLength({ min: 6, max: 6 })],
+  validate,
+  async (req, res, next) => {
+    try {
+      res.json(await authService.verifyPasswordResetOtp(req.body.email, req.body.otp));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/forgot-password/reset',
+  [
+    body('email').isEmail(),
+    body('otp').trim().isLength({ min: 6, max: 6 }),
+    body('password').isLength({ min: 8 }),
+    body('confirmPassword').isLength({ min: 8 })
+  ],
+  validate,
+  async (req, res, next) => {
+    try {
+      res.json(await authService.resetPassword(req.body));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+export default router;

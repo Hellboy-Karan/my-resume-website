@@ -21,6 +21,14 @@ export const env = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   uploadDir: process.env.UPLOAD_DIR || 'uploads',
   maxFileSizeMb: Number(process.env.MAX_FILE_SIZE_MB || 5),
+  mail: {
+    host: process.env.SMTP_HOST || '',
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: String(process.env.SMTP_SECURE || 'false') === 'true',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || ''
+  },
   systemAi: {
     provider: process.env.SYSTEM_AI_PROVIDER || 'ollama',
     apiKey: process.env.SYSTEM_OPENAI_API_KEY || '',
@@ -32,4 +40,3 @@ export const env = {
     model: process.env.OLLAMA_MODEL || 'llama3.1'
   }
 };
-

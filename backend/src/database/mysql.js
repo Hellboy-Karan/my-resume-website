@@ -45,6 +45,7 @@ export async function ensureMysqlSchema() {
       await connection.query(statement);
     }
     await addColumnIfMissing(connection, 'resumes', 'profile_image_url', 'VARCHAR(500) NULL');
+    await addColumnIfMissing(connection, 'resumes', 'view_count', 'BIGINT NOT NULL DEFAULT 0');
     await addColumnIfMissing(connection, 'templates', 'image_url', 'VARCHAR(500) NULL');
     await addColumnIfMissing(connection, 'users', 'profile_image_url', 'VARCHAR(500) NULL');
     await addColumnIfMissing(connection, 'users', 'phone', 'VARCHAR(40) NULL');
@@ -59,6 +60,26 @@ export async function ensureMysqlSchema() {
     await addColumnIfMissing(connection, 'users', 'professional_info', 'JSON NULL');
     await addColumnIfMissing(connection, 'users', 'certificates', 'JSON NULL');
     await addColumnIfMissing(connection, 'users', 'social_links', 'JSON NULL');
+    await addColumnIfMissing(connection, 'users', 'theme_preference', "ENUM('light','dark','system') NOT NULL DEFAULT 'system'");
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS app_counters (
+        name VARCHAR(80) PRIMARY KEY,
+        value BIGINT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_otps (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        user_id BIGINT NOT NULL,
+        email VARCHAR(180) NOT NULL,
+        otp_hash VARCHAR(255) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        used_at DATETIME NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_reset_otps_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
   } finally {
     connection.release();
   }

@@ -6,6 +6,7 @@ import AppLayout from './components/AppLayout.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import HomePage from './pages/HomePage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import ResumeDashboard from './pages/ResumeDashboard.jsx';
 import ResumeEditorPage from './pages/ResumeEditorPage.jsx';
@@ -29,6 +30,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/ats-analyzer" element={<ResumeAnalyzerPage />} />
             <Route path="/settings" element={<ProfileSettingsPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </Route>
         </Routes>

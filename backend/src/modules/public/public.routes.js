@@ -3,6 +3,7 @@ import { ResumeRepository } from '../resumes/resumes.repository.js';
 import { UserRepository } from '../users/users.repository.js';
 import { defaultResume } from '../resumes/defaultResume.js';
 import { query } from '../../database/mysql.js';
+import { getCounter, incrementCounter } from '../../utils/metrics.js';
 
 const router = Router();
 const resumes = new ResumeRepository();
@@ -45,7 +46,8 @@ router.get('/dashboard', async (_req, res, next) => {
     const [userCount] = await query('SELECT COUNT(*) AS total FROM users');
     const [resumeCount] = await query('SELECT COUNT(*) AS total FROM resumes WHERE is_public = TRUE');
     const [templateCount] = await query('SELECT COUNT(*) AS total FROM templates WHERE is_active = TRUE');
-    const [analysisCount] = await query('SELECT COUNT(*) AS total FROM ats_reports');
+    const totalResumeViews = await getCounter('resume_views');
+    const totalResumeAnalyses = await getCounter('resume_analyses');
     const recentResumes = await query(
       `SELECT r.id, r.title, r.slug, r.template_slug, r.created_at, r.updated_at, u.name AS owner_name, u.username AS owner_username
        FROM resumes r
@@ -97,8 +99,8 @@ router.get('/dashboard', async (_req, res, next) => {
         totalUsers: userCount?.total || 0,
         totalPublishedResumes: resumeCount?.total || 0,
         totalTemplates: templateCount?.total || 0,
-        totalResumeViews: 0,
-        totalResumeAnalyses: analysisCount?.total || 0
+        totalResumeViews,
+        totalResumeAnalyses
       },
       recentActivity: {
         recentlyCreatedResumes: recentResumes,
@@ -123,20 +125,10 @@ router.get('/resumes', async (_req, res, next) => {
   try {
     const published = await resumes.findPublished();
     res.json({
-      resumes: [
-        {
-          ...defaultResume.resume,
-          id: 'default-karan-resume',
-          title: defaultResume.resume.title,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner: defaultResume.owner
-        },
-        ...published.map((resume) => ({
-          ...resume,
-          owner: resume.owner
-        }))
-      ]
+      resumes: published.map((resume) => ({
+        ...resume,
+        owner: resume.owner
+      }))
     });
   } catch (error) {
     next(error);
@@ -147,23 +139,26 @@ router.get('/resume/:username', async (req, res, next) => {
   try {
     const slugResume = await resumes.findBySlug(req.params.username);
     if (slugResume?.is_public) {
+      await incrementCounter('resume_views');
+      const viewedResume = await resumes.incrementViewCount(slugResume.id);
       return res.json({
         owner: {
-          ...slugResume.owner,
-          shortDescription: slugResume.owner?.shortDescription || slugResume.title
+          ...viewedResume.owner,
+          shortDescription: viewedResume.owner?.shortDescription || viewedResume.title
         },
-        resume: slugResume,
-        sections: await resumes.sections(slugResume.id)
+        resume: viewedResume,
+        sections: await resumes.sections(viewedResume.id)
       });
     }
 
     const user = await users.findByUsername(req.params.username);
-    if (!user && req.params.username === defaultResume.owner.username) return res.json(defaultResume);
     if (!user) return res.status(404).json({ message: 'Public resume not found' });
 
     const all = await resumes.findByUser(user.id);
     const resume = all.find((item) => item.is_public);
     if (!resume) return res.status(404).json({ message: 'Public resume not found' });
+    await incrementCounter('resume_views');
+    const viewedResume = await resumes.incrementViewCount(resume.id);
 
     res.json({
       owner: {
@@ -174,11 +169,11 @@ router.get('/resume/:username', async (req, res, next) => {
         phone: user.phone,
         profileImageUrl: user.profile_image_url,
         title: user.profile_title,
-        shortDescription: user.short_description || resume.title,
+        shortDescription: user.short_description || viewedResume.title,
         socialLinks: user.social_links
       },
-      resume,
-      sections: await resumes.sections(resume.id)
+      resume: viewedResume,
+      sections: await resumes.sections(viewedResume.id)
     });
   } catch (error) {
     next(error);
