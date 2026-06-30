@@ -174,53 +174,57 @@ export default function ResumeEditorPage() {
 
   return (
     <>
-      <section className="border-b border-slate-200 bg-slate-50">
-        <div className="mx-auto grid max-w-7xl items-start gap-5 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
-            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-              <div>
-                <label className="text-xs font-black uppercase text-slate-500">Resume Title</label>
-                <input className="input mt-2 max-w-2xl text-xl font-black" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} />
-                <p className="mt-2 rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: /resume/{resume?.slug || resume?.owner?.username || user.username}</p>
-              </div>
-              <div className="flex items-center gap-3 rounded-md bg-slate-50 p-3">
-                {resume?.profile_image_url ? <img className="h-20 w-20 rounded-md object-cover ring-2 ring-slate-200" src={resume.profile_image_url} alt="Profile preview" /> : <div className="grid h-20 w-20 place-items-center rounded-md bg-white text-xs font-bold text-slate-500 ring-1 ring-slate-200">No Image</div>}
-                <div className="grid gap-2">
-                  <label className="btn-secondary cursor-pointer px-3"><ImagePlus size={16} /> {resume?.profile_image_url ? 'Replace' : 'Upload'}<input className="hidden" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={uploadProfileImage} /></label>
-                  {resume?.profile_image_url && <button className="btn-secondary px-3" onClick={removeProfileImage}>Remove</button>}
+      <div className="resume-editor-workspace mx-auto grid max-w-[1800px] items-start gap-6 px-4 py-6 xl:grid-cols-[430px_minmax(0,1fr)]">
+        <aside className="editor-controls print:hidden xl:sticky xl:top-24">
+          <div className="grid gap-5">
+            <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
+              <label className="text-xs font-black uppercase text-slate-500">Resume Title</label>
+              <input className="input mt-2 text-lg font-black" value={resume?.title || ''} onChange={(e) => setResume({ ...resume, title: e.target.value })} onBlur={() => saveResumePatch({ title: resume.title })} />
+              <p className="mt-3 break-words rounded-md bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">Profile URL: /resume/{resume?.slug || resume?.owner?.username || user.username}</p>
+              <div className="mt-4 flex items-center gap-3 rounded-md bg-slate-50 p-3">
+                {resume?.profile_image_url ? <img className="h-20 w-20 rounded-md object-cover ring-2 ring-slate-200" src={resume.profile_image_url} alt="Profile preview" /> : <div className="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-white text-xs font-bold text-slate-500 ring-1 ring-slate-200">No Image</div>}
+                <div className="grid min-w-0 flex-1 gap-2">
+                  <label className="btn-secondary h-10 cursor-pointer px-3"><ImagePlus size={16} /> {resume?.profile_image_url ? 'Replace' : 'Upload'}<input className="hidden" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={uploadProfileImage} /></label>
+                  {resume?.profile_image_url && <button className="btn-secondary h-10 px-3" onClick={removeProfileImage}>Remove</button>}
                   {uploading === 'profile' && <span className="text-xs font-semibold text-slate-500">Uploading...</span>}
                 </div>
               </div>
-            </div>
+            </section>
+
             <SocialLinksEditor items={socialDraft} setItems={setSocialDraft} onSave={saveSocialLinks} />
+
+            <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
+              <label className="text-xs font-black uppercase text-slate-500">Template</label>
+              <select className="input mt-2 h-12" value={resume?.template_slug || 'modern-developer'} onChange={(e) => saveResumePatch({ templateSlug: e.target.value })}>
+                {templates.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+              </select>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <button className="btn-secondary h-11 justify-start" onClick={() => setEditing({ title: '', type: 'custom', contentText: '' })}><Plus size={16} /> Section</button>
+                <button className="btn-secondary h-11 justify-start" onClick={() => setPreviewOpen(true)}><Eye size={16} /> Preview</button>
+                <button className="btn-secondary h-11 justify-start" onClick={() => setAiModal(true)}><Brain size={16} /> AI</button>
+                <button className="btn-secondary h-11 justify-start" onClick={() => setApiModal(true)}><KeyRound size={16} /> Own API</button>
+                <label className="btn-secondary h-11 cursor-pointer justify-start"><ImagePlus size={16} /> {uploading === 'project' ? 'Uploading...' : 'Upload'}<input className="hidden" type="file" onChange={uploadFile} /></label>
+                <label className="btn-secondary h-11 cursor-pointer justify-start">Import Resume<input className="hidden" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={importResume} /></label>
+              </div>
+              <button className="btn-secondary mt-3 h-11 w-full justify-start" disabled={!selected.length} onClick={bulkDelete}><Trash2 size={16} /> Delete Selected</button>
+            </section>
+
+            {message && <p className="rounded-md bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">{message}</p>}
           </div>
-          <div className="self-start rounded-md border border-slate-200 bg-white p-5 shadow-soft">
-            <label className="text-xs font-black uppercase text-slate-500">Template</label>
-            <select className="input mt-2 h-12" value={resume?.template_slug || 'modern-developer'} onChange={(e) => saveResumePatch({ templateSlug: e.target.value })}>
-              {templates.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
-            </select>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <button className="btn-secondary h-11 justify-start" onClick={() => setEditing({ title: '', type: 'custom', contentText: '' })}><Plus size={16} /> Section</button>
-              <button className="btn-secondary h-11 justify-start" onClick={() => setPreviewOpen(true)}><Eye size={16} /> Preview</button>
-              <button className="btn-secondary h-11 justify-start" onClick={() => setAiModal(true)}><Brain size={16} /> AI</button>
-              <button className="btn-secondary h-11 justify-start" onClick={() => setApiModal(true)}><KeyRound size={16} /> Own API</button>
-              <label className="btn-secondary h-11 cursor-pointer justify-start"><ImagePlus size={16} /> {uploading === 'project' ? 'Uploading...' : 'Upload'}<input className="hidden" type="file" onChange={uploadFile} /></label>
-              <label className="btn-secondary h-11 cursor-pointer justify-start">Import Resume<input className="hidden" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={importResume} /></label>
-            </div>
-            <button className="btn-secondary mt-3 h-11 w-full justify-start" disabled={!selected.length} onClick={bulkDelete}><Trash2 size={16} /> Delete Selected</button>
-          </div>
-          {message && <p className="rounded-md bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 lg:col-span-2">{message}</p>}
-        </div>
-      </section>
-      <ResumeView
-        data={data}
-        editable
-        selected={selected}
-        template={resume?.template_slug}
-        onSelect={toggleSelect}
-        onEdit={(section) => setEditing({ ...section, contentText: JSON.stringify(section.content, null, 2) })}
-        onDelete={deleteSection}
-      />
+        </aside>
+
+        <main className="resume-preview-shell min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white shadow-soft">
+          <ResumeView
+            data={data}
+            editable
+            selected={selected}
+            template={resume?.template_slug}
+            onSelect={toggleSelect}
+            onEdit={(section) => setEditing({ ...section, contentText: JSON.stringify(section.content, null, 2) })}
+            onDelete={deleteSection}
+          />
+        </main>
+      </div>
       {editing && (
         <Modal title={editing.id ? 'Edit Section' : 'Add Section'} onClose={() => setEditing(null)}>
           <form className="grid gap-4" onSubmit={saveSection}>
@@ -278,7 +282,7 @@ function SocialLinksEditor({ items, setItems, onSave }) {
   }
 
   return (
-    <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+    <section className="rounded-md border border-slate-200 bg-white p-5 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-black uppercase text-ink">Social/Profile Links</h3>
@@ -288,7 +292,7 @@ function SocialLinksEditor({ items, setItems, onSave }) {
       </div>
       <div className="mt-4 grid gap-3">
         {items.map((item, index) => (
-          <div className="grid gap-2 lg:grid-cols-[160px_minmax(220px,1fr)_auto]" key={index}>
+          <div className="grid gap-2" key={index}>
             <input className="input" placeholder="Label" value={item.label} onChange={(event) => updateLink(index, { label: event.target.value })} />
             <input className="input" placeholder="https://example.com/profile" value={item.url} onChange={(event) => updateLink(index, { url: event.target.value })} />
             <button className="btn-secondary px-3" type="button" onClick={() => removeLink(index)}>Remove</button>
@@ -296,7 +300,7 @@ function SocialLinksEditor({ items, setItems, onSave }) {
         ))}
       </div>
       <button className="btn-primary mt-4" type="button" onClick={onSave}>Save Links</button>
-    </div>
+    </section>
   );
 }
 

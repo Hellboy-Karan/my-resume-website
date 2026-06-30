@@ -104,7 +104,7 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
   const mutedText = darkHeader ? 'text-white/75' : 'text-slate-600';
 
   return (
-    <div className={sidebar ? 'grid gap-6 lg:grid-cols-[320px_1fr]' : ''}>
+    <div className={`resume-print-area ${sidebar ? 'grid gap-6 lg:grid-cols-[320px_1fr]' : ''}`}>
       <ResumeSectionNav sections={sections} />
       <section className={`border-b border-slate-200 ${headerStyle(template)}`}>
         <div className="mx-auto max-w-7xl px-4 py-10">

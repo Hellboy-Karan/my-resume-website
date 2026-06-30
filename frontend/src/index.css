@@ -30,17 +30,37 @@ body {
 }
 
 @media print {
-  header,
-  .print\:hidden,
-  aside,
-  button,
-  input,
-  select {
+  @page {
+    margin: 0.35in;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .resume-print-area,
+  .resume-print-area * {
+    visibility: visible !important;
+  }
+
+  .resume-print-area {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    background: white !important;
+  }
+
+  .resume-print-area .print\:hidden,
+  .resume-print-area button,
+  .resume-print-area input,
+  .resume-print-area aside {
     display: none !important;
   }
 
   body {
     background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .shadow-soft {
