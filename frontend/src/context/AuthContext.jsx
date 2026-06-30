@@ -19,12 +19,14 @@ export function AuthProvider({ children }) {
     const data = await api('/auth/login', { method: 'POST', body: JSON.stringify(payload) });
     localStorage.setItem('token', data.token);
     setUser(data.user);
+    return data.user;
   }
 
   async function register(payload) {
     const data = await api('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
     localStorage.setItem('token', data.token);
     setUser(data.user);
+    return data.user;
   }
 
   function logout() {
@@ -39,4 +41,3 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
-

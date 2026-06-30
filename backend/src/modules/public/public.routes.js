@@ -90,13 +90,8 @@ router.get('/resumes', async (_req, res, next) => {
           owner: defaultResume.owner
         },
         ...published.map((resume) => ({
-        ...resume,
-        owner: {
-          name: resume.owner_name,
-          username: resume.owner_username,
-          email: resume.owner_email,
-          role: resume.owner_role
-        }
+          ...resume,
+          owner: resume.owner
         }))
       ]
     });
@@ -107,6 +102,18 @@ router.get('/resumes', async (_req, res, next) => {
 
 router.get('/resume/:username', async (req, res, next) => {
   try {
+    const slugResume = await resumes.findBySlug(req.params.username);
+    if (slugResume?.is_public) {
+      return res.json({
+        owner: {
+          ...slugResume.owner,
+          title: slugResume.title
+        },
+        resume: slugResume,
+        sections: await resumes.sections(slugResume.id)
+      });
+    }
+
     const user = await users.findByUsername(req.params.username);
     if (!user && req.params.username === defaultResume.owner.username) return res.json(defaultResume);
     if (!user) return res.status(404).json({ message: 'Public resume not found' });

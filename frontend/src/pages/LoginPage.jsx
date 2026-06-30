@@ -12,8 +12,8 @@ export default function LoginPage() {
     event.preventDefault();
     setError('');
     try {
-      await login(form);
-      navigate('/editor');
+      const loggedInUser = await login(form);
+      navigate(`/resume/${loggedInUser.username}`);
     } catch (err) {
       setError(err.message);
     }
@@ -32,4 +32,3 @@ export default function LoginPage() {
     </section>
   );
 }
-
