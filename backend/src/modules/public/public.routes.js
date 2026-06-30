@@ -8,6 +8,34 @@ const router = Router();
 const resumes = new ResumeRepository();
 const users = new UserRepository();
 
+function parseContent(content) {
+  if (!content) return {};
+  if (typeof content === 'object') return content;
+  try {
+    return JSON.parse(content);
+  } catch (_error) {
+    return {};
+  }
+}
+
+function summaryFromSections(sections) {
+  const section = sections.find((item) => ['summary', 'professional-summary'].includes(item.type));
+  const content = parseContent(section?.content);
+  return content.text || content.body || '';
+}
+
+function phoneFromSections(sections) {
+  const section = sections.find((item) => ['personal-info', 'personal', 'contact'].includes(item.type));
+  const content = parseContent(section?.content);
+  return content.phone || content.mobile || content.phoneNumber || '';
+}
+
+function linksFromSections(sections) {
+  const section = sections.find((item) => ['social-links', 'links'].includes(item.type));
+  const content = parseContent(section?.content);
+  return Array.isArray(content.items) ? content.items.slice(0, 5) : [];
+}
+
 router.get('/default-resume', (_req, res) => {
   res.json(defaultResume);
 });
@@ -41,14 +69,28 @@ router.get('/dashboard', async (_req, res, next) => {
        ORDER BY total DESC
        LIMIT 1`
     );
-    const adminShowcase = await query(
-      `SELECT r.id, r.title, r.slug, r.template_slug, r.updated_at, u.name AS owner_name, u.username AS owner_username
+    const adminShowcaseRows = await query(
+      `SELECT r.id, r.title, r.slug, r.template_slug, r.profile_image_url, r.updated_at,
+        u.name AS owner_name, u.email AS owner_email, u.username AS owner_username,
+        u.profile_image_url AS owner_profile_image_url, u.phone AS owner_phone,
+        u.short_description AS owner_short_description, u.profile_title AS owner_profile_title,
+        u.social_links AS owner_social_links
        FROM resumes r
        JOIN users u ON u.id = r.user_id
        WHERE r.is_public = TRUE AND u.role = 'ADMIN'
-       ORDER BY r.updated_at DESC
-       LIMIT 6`
+       ORDER BY r.updated_at DESC`
     );
+    const adminShowcase = await Promise.all(adminShowcaseRows.map(async (resume) => {
+      const sections = await resumes.sections(resume.id);
+      const ownerLinks = parseContent(resume.owner_social_links);
+      return {
+        ...resume,
+        profile_image_url: resume.profile_image_url || resume.owner_profile_image_url,
+        phone: resume.owner_phone || phoneFromSections(sections),
+        social_links: Array.isArray(ownerLinks) && ownerLinks.length ? ownerLinks.slice(0, 5) : linksFromSections(sections),
+        summary: resume.owner_short_description || summaryFromSections(sections) || resume.title
+      };
+    }));
 
     res.json({
       stats: {
@@ -69,7 +111,8 @@ router.get('/dashboard', async (_req, res, next) => {
         mostViewedResume: 'Views tracking not enabled yet',
         mostActiveUsers: latestUsers.slice(0, 3)
       },
-      resumeShowcase: adminShowcase
+      resumeShowcase: adminShowcase,
+      adminFeaturedResumes: adminShowcase
     });
   } catch (error) {
     next(error);
@@ -107,7 +150,7 @@ router.get('/resume/:username', async (req, res, next) => {
       return res.json({
         owner: {
           ...slugResume.owner,
-          title: slugResume.title
+          shortDescription: slugResume.owner?.shortDescription || slugResume.title
         },
         resume: slugResume,
         sections: await resumes.sections(slugResume.id)
@@ -128,7 +171,11 @@ router.get('/resume/:username', async (req, res, next) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        title: resume.title
+        phone: user.phone,
+        profileImageUrl: user.profile_image_url,
+        title: user.profile_title,
+        shortDescription: user.short_description || resume.title,
+        socialLinks: user.social_links
       },
       resume,
       sections: await resumes.sections(resume.id)

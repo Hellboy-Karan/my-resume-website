@@ -4,6 +4,7 @@ import multer from 'multer';
 import { requireAuth } from '../../middlewares/auth.js';
 import { validate } from '../../middlewares/errorHandler.js';
 import { featureGate } from '../../middlewares/featureGate.js';
+import { HttpError } from '../../common/httpError.js';
 import { extractResumeSections, extractTextFromUpload } from '../../utils/documentParser.js';
 import { ResumeService } from './resumes.service.js';
 
@@ -67,9 +68,10 @@ router.post(
   importUpload.single('resume'),
   async (req, res, next) => {
     try {
+      if (!req.file) throw new HttpError(400, 'Please upload a PDF or DOCX resume file.');
       const resumeText = await extractTextFromUpload(req.file);
       const extracted = extractResumeSections(resumeText);
-      const sections = await service.importExtractedData(req.user, req.params.id, extracted);
+      const sections = (await service.importExtractedData(req.user, req.params.id, extracted)).filter(Boolean);
       res.json({ extracted, sections });
     } catch (error) {
       next(error);

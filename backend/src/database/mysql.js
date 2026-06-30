@@ -46,6 +46,19 @@ export async function ensureMysqlSchema() {
     }
     await addColumnIfMissing(connection, 'resumes', 'profile_image_url', 'VARCHAR(500) NULL');
     await addColumnIfMissing(connection, 'templates', 'image_url', 'VARCHAR(500) NULL');
+    await addColumnIfMissing(connection, 'users', 'profile_image_url', 'VARCHAR(500) NULL');
+    await addColumnIfMissing(connection, 'users', 'phone', 'VARCHAR(40) NULL');
+    await addColumnIfMissing(connection, 'users', 'address', 'VARCHAR(255) NULL');
+    await addColumnIfMissing(connection, 'users', 'city', 'VARCHAR(100) NULL');
+    await addColumnIfMissing(connection, 'users', 'state', 'VARCHAR(100) NULL');
+    await addColumnIfMissing(connection, 'users', 'country', 'VARCHAR(100) NULL');
+    await addColumnIfMissing(connection, 'users', 'postal_code', 'VARCHAR(30) NULL');
+    await addColumnIfMissing(connection, 'users', 'about_me', 'TEXT NULL');
+    await addColumnIfMissing(connection, 'users', 'short_description', 'TEXT NULL');
+    await addColumnIfMissing(connection, 'users', 'profile_title', 'VARCHAR(180) NULL');
+    await addColumnIfMissing(connection, 'users', 'professional_info', 'JSON NULL');
+    await addColumnIfMissing(connection, 'users', 'certificates', 'JSON NULL');
+    await addColumnIfMissing(connection, 'users', 'social_links', 'JSON NULL');
   } finally {
     connection.release();
   }

@@ -71,6 +71,7 @@ export default function TemplateSelectorPage() {
 }
 
 function templateCategory(slug) {
+  if (slug.includes('standard')) return 'ATS Standard';
   if (slug.includes('product')) return 'Product Company';
   if (slug.includes('management') || slug.includes('operations') || slug.includes('consulting')) return 'Management';
   if (slug.includes('developer') || slug.includes('engineer')) return 'Engineering';
