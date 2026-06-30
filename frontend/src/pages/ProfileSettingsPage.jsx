@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ImagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { API_URL, api } from '../api/client.js';
+import RichTextEditor from '../components/RichTextEditor.jsx';
 import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -26,7 +27,7 @@ const emptyCertificate = {
 };
 
 export default function ProfileSettingsPage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, setThemePreference } = useAuth();
   const [form, setForm] = useState(null);
   const [initial, setInitial] = useState(null);
   const [loading, setLoading] = useState(Boolean(user));
@@ -162,6 +163,7 @@ export default function ProfileSettingsPage() {
         aboutMe: form.aboutMe,
         shortDescription: form.shortDescription,
         profileTitle: form.profileTitle,
+        themePreference: form.themePreference,
         professionalInfo: form.professionalInfo,
         certificates: cleanCertificates(form.certificates),
         socialLinks: cleanLinks(form.socialLinks)
@@ -172,6 +174,7 @@ export default function ProfileSettingsPage() {
       setForm(next);
       setInitial(next);
       setMessage('Profile settings saved successfully.');
+      setThemePreference(payload.themePreference, false);
     } catch (err) {
       setError(err.message || 'Unable to save profile settings.');
     } finally {
@@ -207,6 +210,14 @@ export default function ProfileSettingsPage() {
               <TextField label="Email" value={form.email} readOnly />
               <TextField label="Phone Number" value={form.phone} onChange={(value) => updateField('phone', value)} />
               <TextField label="Current Job Role / Profile Title" value={form.profileTitle} onChange={(value) => updateField('profileTitle', value)} />
+              <label className="block">
+                <span className="text-xs font-black uppercase text-slate-500">Theme Mode</span>
+                <select className="input mt-2" value={form.themePreference} onChange={(event) => updateField('themePreference', event.target.value)}>
+                  <option value="light">Light Mode</option>
+                  <option value="dark">Dark Mode</option>
+                  <option value="system">System Mode</option>
+                </select>
+              </label>
             </div>
             <TextArea label="Resume Short Description" value={form.shortDescription} onChange={(value) => updateField('shortDescription', value)} rows={3} />
             <TextArea label="About Me" value={form.aboutMe} onChange={(value) => updateField('aboutMe', value)} rows={5} />
@@ -350,18 +361,7 @@ function TextField({ label, value, onChange, readOnly = false, required = false 
 }
 
 function TextArea({ label, value, onChange, rows = 4, placeholder = '' }) {
-  return (
-    <label className="block">
-      <span className="text-xs font-black uppercase text-slate-500">{label}</span>
-      <textarea
-        className="input mt-2 min-h-28"
-        rows={rows}
-        value={value || ''}
-        placeholder={placeholder}
-        onChange={(event) => onChange?.(event.target.value)}
-      />
-    </label>
-  );
+  return <RichTextEditor label={label} value={value || ''} onChange={onChange} minHeight={`${Math.max(rows * 42, 120)}px`} placeholder={placeholder} />;
 }
 
 function toForm(user) {
@@ -378,6 +378,7 @@ function toForm(user) {
     aboutMe: user?.about_me || user?.aboutMe || '',
     shortDescription: user?.short_description || user?.shortDescription || '',
     profileTitle: user?.profile_title || user?.profileTitle || '',
+    themePreference: user?.theme_preference || user?.themePreference || 'system',
     professionalInfo: user?.professional_info || user?.professionalInfo || {},
     certificates: Array.isArray(user?.certificates) ? user.certificates : [],
     socialLinks: Array.isArray(user?.social_links) ? user.social_links : Array.isArray(user?.socialLinks) ? user.socialLinks : []

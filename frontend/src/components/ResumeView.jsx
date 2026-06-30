@@ -1,6 +1,7 @@
 import { Download, Edit3, ExternalLink, Trash2 } from 'lucide-react';
 import ResumeSectionNav from './ResumeSectionNav.jsx';
 import RoleBadge from './RoleBadge.jsx';
+import { formatRichText } from '../utils/formatting.js';
 
 function renderContent(section) {
   const content = section.content || {};
@@ -8,7 +9,7 @@ function renderContent(section) {
     return <div className="flex flex-wrap gap-2">{(content.items || []).map((skill) => <span className="rounded-md bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700" key={skill}>{skill}</span>)}</div>;
   }
   if (section.type === 'projects') {
-    return <div className="grid gap-3 md:grid-cols-3">{(content.items || []).map((project) => <article className="rounded-md border border-slate-200 p-4" key={project.name}><h4 className="font-bold text-ink">{project.name}</h4><p className="mt-2 text-sm leading-6 text-slate-600">{project.description}</p></article>)}</div>;
+    return <div className="grid gap-3 md:grid-cols-3">{(content.items || []).map((project) => <article className="rounded-md border border-slate-200 p-4" key={project.name}><h4 className="font-bold text-ink">{project.name}</h4><FormattedText className="rich-text mt-2 text-sm leading-6 text-slate-600" value={project.description} /></article>)}</div>;
   }
   if (['social-links', 'links'].includes(section.type) && Array.isArray(content.items)) {
     return (
@@ -26,9 +27,9 @@ function renderContent(section) {
     );
   }
   if (Array.isArray(content.items)) {
-    return <ul className="grid gap-2">{content.items.map((item, index) => <li className="text-slate-700" key={index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>)}</ul>;
+    return <ul className="grid gap-2">{content.items.map((item, index) => <li className="text-slate-700" key={index}>{typeof item === 'string' ? <FormattedText value={item} /> : <FormattedText value={item.description || item.name || JSON.stringify(item)} />}</li>)}</ul>;
   }
-  return <p className="max-w-4xl text-base leading-7 text-slate-700">{content.text || content.body || JSON.stringify(content)}</p>;
+  return <FormattedText value={content.text || content.body || JSON.stringify(content)} />;
 }
 
 function hasSectionData(section) {
@@ -122,13 +123,13 @@ function renderStandardContent(section) {
       <div className="space-y-1 text-[15px] leading-7 text-black">
         {entries.map(([key, value]) => (
           <p key={key}>
-            <strong>{toTitle(key)}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
+            <strong>{toTitle(key)}:</strong> {Array.isArray(value) ? value.join(', ') : <span dangerouslySetInnerHTML={{ __html: formatRichText(String(value)) }} />}
           </p>
         ))}
       </div>
     );
   }
-  return <p className="text-justify text-[15px] leading-8 text-black">{content.text || content.body || JSON.stringify(content)}</p>;
+  return <FormattedText className="rich-text text-justify text-[15px] leading-8 text-black" value={content.text || content.body || JSON.stringify(content)} />;
 }
 
 function toTitle(value) {
@@ -157,7 +158,7 @@ function StandardResumeView({ owner, resume, sections, editable, selected, onSel
             ))}
           </p>
           {owner.title && <p className="mx-auto mt-2 max-w-4xl text-[16px] font-bold leading-7 text-black">{owner.title}</p>}
-          {shortDescription && <p className="mx-auto mt-1 max-w-4xl text-[16px] leading-7 text-black">{shortDescription}</p>}
+          {shortDescription && <FormattedText className="rich-text mx-auto mt-1 max-w-4xl text-[16px] leading-7 text-black" value={shortDescription} />}
         </header>
 
         <div className="mt-10 space-y-10">
@@ -221,7 +222,7 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
             <h1 className={`max-w-4xl text-4xl font-black md:text-6xl ${headerText}`}>{owner.name}</h1>
           </div>
           {owner.title && <p className={`mt-4 max-w-3xl text-lg font-bold leading-8 ${mutedText}`}>{owner.title}</p>}
-          {shortDescription && <p className={`mt-2 max-w-3xl text-base font-semibold leading-7 ${mutedText}`}>{shortDescription}</p>}
+          {shortDescription && <FormattedText className={`rich-text mt-2 max-w-3xl text-base font-semibold leading-7 ${mutedText}`} value={shortDescription} />}
           <div className={`mt-6 flex flex-wrap items-center gap-3 text-sm font-semibold ${mutedText}`}>
             <span className={headerText}>Owner: {owner.name || 'Resume owner'}</span>
             <span className="print:hidden"><RoleBadge role={owner.role || resume.owner?.role || 'USER'} /></span>
@@ -270,4 +271,8 @@ export default function ResumeView({ data, editable = false, selected = [], onSe
       </section>
     </div>
   );
+}
+
+function FormattedText({ value, className = 'rich-text' }) {
+  return <div className={className} dangerouslySetInnerHTML={{ __html: formatRichText(value || '') }} />;
 }

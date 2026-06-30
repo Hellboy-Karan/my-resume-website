@@ -1,5 +1,6 @@
 import { query } from '../../database/mysql.js';
 import { ResumeContent } from '../../database/mongo.js';
+import { sanitizeContent, sanitizeRichText } from '../../utils/richText.js';
 
 function parseSection(row) {
   if (!row) return null;
@@ -49,7 +50,7 @@ export class ResumeRepository {
     const result = await query(
       `INSERT INTO resumes (user_id, title, slug, template_slug)
        VALUES (:userId, :title, :slug, :templateSlug)`,
-      { userId, title, slug, templateSlug }
+      { userId, title: sanitizeRichText(title), slug, templateSlug }
     );
     await ResumeContent.create({ resumeId: result.insertId, userId, content: {} });
     return this.findById(result.insertId);
@@ -125,10 +126,15 @@ export class ResumeRepository {
     for (const [key, value] of Object.entries(data)) {
       if (allowed[key]) {
         fields.push(`${allowed[key]} = :${key}`);
-        params[key] = value;
+        params[key] = key === 'title' ? sanitizeRichText(value) : value;
       }
     }
     if (fields.length) await query(`UPDATE resumes SET ${fields.join(', ')} WHERE id = :id`, params);
+    return this.findById(id);
+  }
+
+  async incrementViewCount(id) {
+    await query('UPDATE resumes SET view_count = view_count + 1 WHERE id = :id', { id });
     return this.findById(id);
   }
 
@@ -148,7 +154,7 @@ export class ResumeRepository {
     const result = await query(
       `INSERT INTO resume_sections (resume_id, type, title, content, sort_order)
        VALUES (:resumeId, :type, :title, CAST(:content AS JSON), :sortOrder)`,
-      { resumeId, type, title, content: JSON.stringify(content), sortOrder }
+      { resumeId, type, title, content: JSON.stringify(sanitizeContent(content)), sortOrder }
     );
     return this.findSectionById(result.insertId);
   }
@@ -173,7 +179,7 @@ export class ResumeRepository {
     for (const [key, value] of Object.entries(data)) {
       if (allowed[key]) {
         fields.push(`${allowed[key]} = :${key}`);
-        params[key] = key === 'content' ? JSON.stringify(value) : value;
+        params[key] = key === 'content' ? JSON.stringify(sanitizeContent(value)) : value;
       }
     }
     if (fields.length) await query(`UPDATE resume_sections SET ${fields.join(', ')} WHERE id = :id`, params);

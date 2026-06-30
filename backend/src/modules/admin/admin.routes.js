@@ -48,6 +48,7 @@ router.patch(
     try {
       const target = await users.findById(req.params.id);
       if (!target) throw new HttpError(404, 'User not found');
+      if (target.email === 'sk5485633@gmail.com' && req.body.role !== 'ADMIN') throw new HttpError(403, 'Default Admin email must remain Admin');
       res.json({ user: await users.update(req.params.id, { role: req.body.role }) });
     } catch (error) {
       next(error);
@@ -144,6 +145,7 @@ router.get('/resume-users', async (req, res, next) => {
         SUBSTRING_INDEX(GROUP_CONCAT(r.slug ORDER BY r.updated_at DESC), ',', 1) AS latest_resume_slug,
         SUBSTRING_INDEX(GROUP_CONCAT(COALESCE(r.profile_image_url, '') ORDER BY r.updated_at DESC SEPARATOR '||'), '||', 1) AS profile_image_url,
         COUNT(r.id) AS total_resumes,
+        COALESCE(SUM(r.view_count), 0) AS total_views,
         SUM(CASE WHEN r.is_public = TRUE THEN 1 ELSE 0 END) AS published_resumes,
         SUM(CASE WHEN r.is_public = FALSE THEN 1 ELSE 0 END) AS draft_resumes
        FROM users u

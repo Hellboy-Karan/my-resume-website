@@ -5,6 +5,7 @@ import { optionalAuth, requireAuth } from '../../middlewares/auth.js';
 import { validate } from '../../middlewares/errorHandler.js';
 import { featureGate } from '../../middlewares/featureGate.js';
 import { extractTextFromUpload } from '../../utils/documentParser.js';
+import { incrementCounter } from '../../utils/metrics.js';
 import { AtsService } from './ats.service.js';
 
 const router = Router();
@@ -29,6 +30,7 @@ router.post(
   async (req, res, next) => {
     try {
       const report = ats.analyze(req.body.resumeText, req.body.jobDescription);
+      await incrementCounter('resume_analyses');
       if (req.user && req.body.resumeId) {
         return res.json({ report: await ats.saveReport({ userId: req.user.id, resumeId: req.body.resumeId, report }) });
       }
@@ -43,6 +45,7 @@ router.post('/analyze-file', optionalAuth, upload.single('resume'), async (req, 
   try {
     const resumeText = await extractTextFromUpload(req.file);
     const report = ats.analyze(resumeText, req.body.jobDescription);
+    await incrementCounter('resume_analyses');
     res.json({ report, resumeText });
   } catch (error) {
     next(error);

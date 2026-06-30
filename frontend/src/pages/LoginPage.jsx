@@ -27,7 +27,10 @@ export default function LoginPage() {
         <input className="input" placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input className="input" placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         <button className="btn-primary">Login</button>
-        <Link className="text-sm font-semibold text-steel" to="/register">Create a new account</Link>
+        <div className="flex flex-wrap justify-between gap-3 text-sm font-semibold">
+          <Link className="text-steel" to="/register">Create a new account</Link>
+          <Link className="text-coral" to="/forgot-password">Forgot Password?</Link>
+        </div>
       </form>
     </section>
   );

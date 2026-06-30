@@ -4,6 +4,7 @@ import { BarChart3, Eye, FileText, LayoutTemplate, Sparkles, Users } from 'lucid
 import { api } from '../api/client.js';
 import Skeleton from '../components/Skeleton.jsx';
 import { templateName, templates } from '../data/templates.js';
+import { richTextToPlain } from '../utils/formatting.js';
 
 const statsConfig = [
   ['totalUsers', 'Total Users', Users],
@@ -137,7 +138,7 @@ function AdminFeaturedResumes({ resumes = [], page, setPage }) {
                 </div>
 
                 <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-600">
-                  {resume.owner_short_description || resume.summary || resume.title || 'Professional resume website with published profile, skills, projects, and experience details.'}
+                  {richTextToPlain(resume.owner_short_description || resume.summary || resume.title || 'Professional resume website with published profile, skills, projects, and experience details.')}
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
