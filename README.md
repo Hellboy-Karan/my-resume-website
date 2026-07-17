@@ -1,6 +1,6 @@
-# AI Resume Builder by Karan Kumar Sharma
+# AI Resume by Karan Kumar Sharma
 
-Open-source AI Resume Builder + Portfolio Website platform for creating, editing, analyzing, importing, arranging, and sharing resume websites with companies.
+Open-source AI Resume + Portfolio Website platform for creating, editing, analyzing, importing, arranging, and sharing resume websites with companies.
 
 The platform supports public resume links, rich text resume sections, multiple templates, profile settings, role-based permissions, user resume management, Resume Analyzer, local/Ollama AI, OpenAI-compatible AI providers, encrypted per-user API keys, uploads, Dockerized services, and public resume view tracking.
 
@@ -122,7 +122,7 @@ npm --prefix frontend run dev
 ## Environment Variables
 
 ```env
-APP_NAME="AI Resume Builder by Karan Kumar Sharma"
+APP_NAME="AI Resume by Karan Kumar Sharma"
 NODE_ENV=development
 PORT=5000
 FRONTEND_URL=http://localhost:5173
@@ -133,11 +133,11 @@ ENCRYPTION_KEY=replace-with-32-byte-secret-key-here
 
 MYSQL_HOST=mysql
 MYSQL_PORT=3306
-MYSQL_DATABASE=ai_resume_builder
+MYSQL_DATABASE=ai_resume
 MYSQL_USER=resume_user
 MYSQL_PASSWORD=resume_password
 
-MONGO_URI=mongodb://mongodb:27017/ai_resume_builder
+MONGO_URI=mongodb://mongodb:27017/ai_resume
 REDIS_URL=redis://redis:6379
 
 UPLOAD_DIR=uploads
@@ -155,7 +155,7 @@ SMTP_PORT=465
 SMTP_SECURE=true
 SMTP_USER=your-gmail@gmail.com
 SMTP_PASS=your-16-character-app-password
-SMTP_FROM="AI Resume Builder <your-gmail@gmail.com>"
+SMTP_FROM="AI Resume <your-gmail@gmail.com>"
 
 VITE_API_URL=http://localhost:5000/api
 VITE_PUBLIC_URL=http://localhost:5173
@@ -207,7 +207,7 @@ Permissions are applied on both frontend button visibility and backend route pro
 
 ## Main Features
 
-### Resume Builder
+### Resume
 
 - Create resume
 - Edit resume sections

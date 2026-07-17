@@ -1,12 +1,9 @@
 node_modules/
 dist/
 build/
-coverage/
 .env
 .env.*
 !.env.example
-uploads/
-logs/
 *.log
 .DS_Store
 
