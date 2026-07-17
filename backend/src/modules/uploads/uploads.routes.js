@@ -9,7 +9,7 @@ import { env } from '../../config/env.js';
 import { HttpError } from '../../common/httpError.js';
 import { query } from '../../database/mysql.js';
 
-const router = Router();
+const router = Router(); 
 const uploadRoot = path.resolve(process.cwd(), env.uploadDir);
 fs.mkdirSync(uploadRoot, { recursive: true });
 
