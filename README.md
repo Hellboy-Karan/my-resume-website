@@ -69,55 +69,123 @@ shared/
   types.ts
 ```
 
-## Quick Start With Docker
+## Start and Run the Project
 
-1. Copy environment variables:
+### Prerequisites
+
+Install the following software before starting:
+
+- [Git](https://git-scm.com/downloads)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (recommended)
+- [Node.js](https://nodejs.org/) 20 or newer (only required for local development)
+
+Make sure Docker Desktop is running before using any `docker compose` command.
+
+### Recommended: Run Everything With Docker
+
+Open PowerShell in the project directory:
 
 ```powershell
-Copy-Item .env.example .env
+cd G:\Codex\Projects\ai-resume-builder-karan
 ```
 
-2. Update important secrets in `.env`:
+Create the environment file only if `.env` does not already exist:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Open `.env` and replace at least these development placeholders with your own
+long, random values:
 
 ```env
 JWT_SECRET=replace-with-a-long-random-secret
-ENCRYPTION_KEY=replace-with-32-byte-secret-key-here
+ENCRYPTION_KEY=replace-with-a-32-byte-secret
 ```
 
-3. Start the app:
+Build and start the frontend, backend, MySQL, MongoDB, and Redis services:
 
 ```powershell
 docker compose up -d --build
 ```
 
-4. Open:
+Check that all containers are running:
 
-- Frontend: `http://localhost:5173`
-- Backend health: `http://localhost:5000/health`
+```powershell
+docker compose ps
+```
+
+Then open:
+
+- Application: `http://localhost:5173`
+- Backend health check: `http://localhost:5000/health`
 - Public resume list: `http://localhost:5173/resume`
-- Public resume URL format: `http://localhost:5173/resume/:slug`
+- Public resume format: `http://localhost:5173/resume/:slug`
 
-## Local Development
+Follow application logs when troubleshooting:
+
+```powershell
+docker compose logs -f backend frontend
+```
+
+Press `Ctrl+C` to stop following the logs. To stop the project containers:
+
+```powershell
+docker compose down
+```
+
+The database data is preserved in Docker volumes. Use `docker compose down -v`
+only when you intentionally want to delete all local project data.
+
+### Local Frontend and Backend Development
+
+This mode runs the databases in Docker while the Node.js applications run on
+the host machine with automatic reload.
 
 Install dependencies:
 
 ```powershell
-npm --prefix backend install
-npm --prefix frontend install
+npm.cmd --prefix backend install
+npm.cmd --prefix frontend install
 ```
 
-Run databases in Docker:
+`npm.cmd` is used here because some Windows PowerShell configurations block the
+`npm.ps1` script. If `npm` works normally on your system, either command is fine.
+
+Start the databases:
 
 ```powershell
 docker compose up -d mysql mongodb redis
 ```
 
-Run backend and frontend locally:
+Create `backend/.env` from the example, then change the database addresses to
+the ports exposed on the host machine:
 
 ```powershell
-npm --prefix backend run dev
-npm --prefix frontend run dev
+Copy-Item .env.example backend\.env
 ```
+
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3307
+MONGO_URI=mongodb://localhost:27018/ai_resume_builder
+REDIS_URL=redis://localhost:6380
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+Start the backend in one PowerShell window:
+
+```powershell
+npm.cmd --prefix backend run dev
+```
+
+Start the frontend in a second PowerShell window:
+
+```powershell
+npm.cmd --prefix frontend run dev
+```
+
+Open `http://localhost:5173`. Stop either development server with `Ctrl+C`.
 
 ## Environment Variables
 
@@ -516,4 +584,3 @@ node --check backend/src/modules/resumes/resumes.repository.js
 - Configure `FRONTEND_URL`, `VITE_API_URL`, and `VITE_PUBLIC_URL` for the deployed domain.
 - Move uploads to S3-compatible storage for production scale.
 - Add formal migrations before running multiple production environments.
-
